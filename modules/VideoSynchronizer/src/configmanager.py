@@ -6,20 +6,20 @@ import configparser
 import logging
 
 from pathlib import Path
+from src.baseclass import BaseClass
 
 
 __author__ = "EnriqueMoran"
 
 
-logger = logging.getLogger("ConfigManager")
-
-
-class ConfigManager():
+class ConfigManager(BaseClass):
     """
     TBD
     """
 
-    def __init__(self, config_path="./cfg/config.ini"):
+    def __init__(self, filename:str, format:logging.Formatter, level:str,
+                 config_path="./cfg/config.ini"):
+        super().__init__(filename, format, level)
         self.config_path = Path(config_path).resolve()
 
         ##### RTMP SERVER #####
@@ -41,10 +41,10 @@ class ConfigManager():
         """
         TBD
         """
-        logger.info(f"Reading configuration from {self.config_path}")
+        self.logger.info(f"Reading configuration from {self.config_path}")
 
         if not self.config_path.exists():
-            logger.warning(f"Configuration file {self.config_path} does not exist.")
+            self.logger.warning(f"Configuration file {self.config_path} does not exist.")
             return False
 
         config = configparser.ConfigParser(inline_comment_prefixes=";")
@@ -54,47 +54,53 @@ class ConfigManager():
 
         try:
             self.gopro_left_in_url = str(config.get("RTMP_SERVER", "gopro_left_url"))
-            logger.info(f"Read RTMP_SERVER - gopro_left_url: {self.gopro_left_in_url}.")
+            self.logger.info(f"Read RTMP_SERVER - gopro_left_url: {self.gopro_left_in_url}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            logger.warning(f"Could not find 'gopro_left_url' in section 'RTMP_SERVER': {e}")
+            warning_msg = f"Could not find 'gopro_left_url' in section 'RTMP_SERVER': {e}"
+            self.logger.warning(warning_msg)
             res = False
 
         try:
             self.gopro_right_in_url = str(config.get("RTMP_SERVER", "gopro_right_url"))
-            logger.info(f"Read RTMP_SERVER - gopro_right_url: {self.gopro_right_in_url}.")
+            self.logger.info(f"Read RTMP_SERVER - gopro_right_url: {self.gopro_right_in_url}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            logger.warning(f"Could not find 'gopro_right_url' in section 'RTMP_SERVER': {e}")
+            warning_msg = f"Could not find 'gopro_right_url' in section 'RTMP_SERVER': {e}"
+            self.logger.warning(warning_msg)
             res = False
 
         try:
             self.gopro_left_out_url = str(config.get("STREAMING", "gopro_left_url"))
-            logger.info(f"Read STREAMING - gopro_left_url: {self.gopro_left_out_url}.")
+            self.logger.info(f"Read STREAMING - gopro_left_url: {self.gopro_left_out_url}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            logger.warning(f"Could not find 'gopro_left_url' in section 'STREAMING': {e}")
+            warning_msg = f"Could not find 'gopro_left_url' in section 'STREAMING': {e}"
+            self.logger.warning(warning_msg)
             res = False
 
         try:
             self.gopro_right_out_url = str(config.get("STREAMING", "gopro_right_url"))
-            logger.info(f"Read STREAMING - gopro_right_url: {self.gopro_right_out_url}.")
+            self.logger.info(f"Read STREAMING - gopro_right_url: {self.gopro_right_out_url}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            logger.warning(f"Could not find 'gopro_right_url' in section 'STREAMING': {e}")
+            warning_msg = f"Could not find 'gopro_right_url' in section 'STREAMING': {e}"
+            self.logger.warning(warning_msg)
             res = False
 
         try:
             self.gopro_left_name = str(config.get("GOPRO_MANAGEMENT", "gopro_left_name"))
-            logger.info(f"Read GOPRO_MANAGEMENT - gopro_left_name: {self.gopro_left_name}.")
+            self.logger.info(f"Read GOPRO_MANAGEMENT - gopro_left_name: {self.gopro_left_name}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            logger.warning(f"Could not find 'gopro_left_name' in section 'GOPRO_MANAGEMENT': {e}")
+            warning_msg = f"Could not find 'gopro_left_name' in section 'GOPRO_MANAGEMENT': {e}"
+            self.logger.warning(warning_msg)
             res = False
         
         try:
             self.gopro_right_name = str(config.get("GOPRO_MANAGEMENT", "gopro_right_name"))
-            logger.info(f"Read GOPRO_MANAGEMENT - gopro_right_name: {self.gopro_right_name}.")
+            self.logger.info(f"Read GOPRO_MANAGEMENT - gopro_right_name: {self.gopro_right_name}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            logger.warning(f"Could not find 'gopro_right_name' in section 'GOPRO_MANAGEMENT': {e}")
+            warning_msg = f"Could not find 'gopro_right_name' in section 'GOPRO_MANAGEMENT': {e}"
+            self.logger.warning(warning_msg)
             res = False 
 
-        logger.info(f"Finished reading configuration.")
+        self.logger.info(f"Finished reading configuration.")
         return res
 
         

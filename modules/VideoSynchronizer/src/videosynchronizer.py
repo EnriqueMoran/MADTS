@@ -4,6 +4,7 @@ TBD
 
 import logging
 
+from src.baseclass import BaseClass
 from src.configmanager import ConfigManager
 from src.gopromanager import GoProManager
 
@@ -11,17 +12,18 @@ from src.gopromanager import GoProManager
 __author__ = "EnriqueMoran"
 
 
-logger = logging.getLogger("VideoSynchronizer")
-
-
-class VideoSynchronizer():
+class VideoSynchronizer(BaseClass):
     """
     TBD
     """
 
-    def __init__(self, gopro_logger_path, config_path="./cfg/config.ini"):
-        self.config_parser = ConfigManager(config_path)
-        self.gopro_manager = GoProManager(self.config_parser, gopro_logger_path)
+    def __init__(self, filename:str, format:logging.Formatter, level:str, 
+                 config_path="./cfg/config.ini"):
+        super().__init__(filename, format, level)
+        self.config_parser = ConfigManager(filename=filename, format=format, level=level, 
+                                           config_path=config_path)
+        self.gopro_manager = GoProManager(filename=filename, format=format, level=level,
+                                          config_manager=self.config_parser)
 
         self.config_parser.read_config()
     
