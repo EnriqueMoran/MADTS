@@ -2,7 +2,7 @@
 TBD
 
 WirelessGoPro documentation: https://github.com/gopro/OpenGoPro/tree/main/demos/python/sdk_wireless_camera_control/docs
-OpenGoPro Python SDK: https://gopro.github.io/OpenGoPro/python_sdk/api.htm
+OpenGoPro Python SDK: https://gopro.github.io/OpenGoPro/python_sdk/api.html
 """
 
 import asyncio
@@ -14,7 +14,6 @@ from src.configmanager import ConfigManager
 
 
 __author__ = "EnriqueMoran"
-
 
 
 class GoProManager(BaseClass):

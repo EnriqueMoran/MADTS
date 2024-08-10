@@ -1,9 +1,8 @@
 """
-TBD
+Implements configuration parser class.
 """
 
 import configparser
-import logging
 
 from pathlib import Path
 from src.baseclass import BaseClass
@@ -14,32 +13,48 @@ __author__ = "EnriqueMoran"
 
 class ConfigManager(BaseClass):
     """
-    TBD
+    This class reads from configuration file and parse its values.
+
+    Args:
+        - config_path (str): Path to configuration file.
+        - filename (str): Path to store log file; belongs to BaseClass.
+        - format (str): Logger format; belongs to BaseClass.
+        - level (str): Logger level; belongs to BaseClass.
     """
 
-    def __init__(self, filename:str, format:logging.Formatter, level:str,
-                 config_path="./cfg/config.ini"):
-        super().__init__(filename, format, level)
-        self.config_path = Path(config_path).resolve()
+    _instance = None
 
-        ##### RTMP SERVER #####
-        self.gopro_right_in_url = None
-        self.gopro_left_in_url  = None
-        
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(ConfigManager, cls).__new__(cls)
+        return cls._instance
 
-        ##### STREAMING  #####
-        self.gopro_right_out_url = None
-        self.gopro_left_out_url  = None
-        
+    def __init__(self, filename:str, format:str, level:str, config_path:str):
+        if not hasattr(self, 'initialized'):
+            super().__init__(filename, format, level)
+            self.config_path = Path(config_path).resolve()
 
-        ##### GOPRO MANAGEMENT #####
-        self.gopro_right_name = None
-        self.gopro_left_name = None
-        
-        
+            ##### RTMP SERVER #####
+            self.gopro_right_in_url = None
+            self.gopro_left_in_url  = None
+            
+            ##### STREAMING  #####
+            self.gopro_right_out_url = None
+            self.gopro_left_out_url  = None
+            
+            ##### GOPRO MANAGEMENT #####
+            self.gopro_right_name = None
+            self.gopro_left_name = None
+
+            self.initialized = True
+
+
     def read_config(self) -> bool:
         """
-        TBD
+        Read configuration file and returns wether there was any error while doing it.
+
+        Returns:
+            - res (bool): True if all parameters could be read successfully, false otherwise.
         """
         self.logger.info(f"Reading configuration from {self.config_path}")
 
@@ -100,7 +115,7 @@ class ConfigManager(BaseClass):
             self.logger.warning(warning_msg)
             res = False 
 
-        self.logger.info(f"Finished reading configuration.")
+        self.logger.info(f"Finished reading configuration, all params read successfully: {res}.")
         return res
 
         

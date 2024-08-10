@@ -16,21 +16,30 @@ from src.videosynchronizer import VideoSynchronizer
 __author__ = "EnriqueMoran"
 
 
-logger = logging.getLogger("Main")
 gopro_logger = logging.getLogger("OpenGoPro")
 
 
 class MainApp:
     """
-    TBD
+    This class executes the main loop of VideoSynchronizer module.
+
+    Args:
+        - args (argparse.Namespace): Arguments to update loggers (Main App and GoPro) parameters. 
+        - gopro_filepath (str): Default path to store GoPro messages log file.
+        - log_filepath (str): Default path to store Main App messages log file.
+        - log_format (str): Main App default logger format.
+        - log_level (str): Main App default logger level.
     """
 
-    def __init__(self, args):
-        self.log_format = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
-        self.log_level  = os.environ.get("LOGLEVEL", "INFO")
-        self.log_filepath   = f"./logs/{datetime.now().strftime('%Y%m%d')}.log"
-        self.gopro_filepath = f"./logs/gopro/{datetime.now().strftime('%Y%m%d')}_gopro.log"
-        self.logger = None
+    def __init__(self, log_format:str, log_level:str, log_filepath:str, 
+                 gopro_filepath:str, config_filepath:str, args:argparse.Namespace):
+        self.gopro_filepath = gopro_filepath
+        self.log_filepath   = log_filepath
+        self.log_format     = log_format
+        self.log_level      = log_level
+        self.logger         = None
+
+        self.config_filepath = config_filepath
 
         self._check_args(args)
         self.set_loggers()
@@ -39,6 +48,9 @@ class MainApp:
     def _check_args(self, args) -> None:
         """
         Check passed args.
+
+        Args:
+            - args (argparse.Namespace): Passed args to be checked.
         """
         valid_log_levels = ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
         if args.level:
@@ -55,7 +67,7 @@ class MainApp:
                 self.log_filepath = args.log
             else:
                 message = f"Warning: logging file path {log_path} not found. " +\
-                        f"Defaulting to {self.log_filepath}."
+                          f"Defaulting to {self.log_filepath}."
                 print(message)
 
         if args.gopro_log:
@@ -64,38 +76,20 @@ class MainApp:
                 self.gopro_filepath = args.gopro_log
             else:
                 message = f"Warning: GoPro logging file path {log_path} not found. " +\
-                        f"Defaulting to {self.gopro_filepath}."
+                          f"Defaulting to {self.gopro_filepath}."
                 print(message)
 
 
     def set_loggers(self) -> None:
         """
-        TBD
+        Create two loggers, one for Main App and another one for GoPro messages.
         """
-        global gopro_logger, logger
+        global gopro_logger
 
-        filename = self.log_filepath
-        format   = self.log_format
-        level    = self.log_level
-
-        # Main app Logger
-        file_handler = logging.FileHandler(filename)
-        file_handler.setLevel(level)
-
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.WARNING)
-
-        formatter = logging.Formatter(format)
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-
-        logger.addHandler(file_handler)
-        logger.addHandler(console_handler)
-        self.logger = logger
+        gopro_filename = self.gopro_filepath
 
         # Gopro Logger
-        gopro_file_handler = logging.FileHandler(filename)
-        gopro_file_handler.setLevel(level)
+        gopro_file_handler = logging.FileHandler(gopro_filename)
 
         gopro_console_handler = logging.StreamHandler()
         gopro_console_handler.setLevel(logging.ERROR)
@@ -103,14 +97,15 @@ class MainApp:
         gopro_logger.addHandler(gopro_file_handler)
         gopro_logger.addHandler(gopro_console_handler)
         gopro_logger = setup_logging(base=gopro_logger, output=self.gopro_filepath)
-        
+
 
     async def run(self):
         await self.test()
 
+
     async def test(self):
         video_syn = VideoSynchronizer(filename=self.log_filepath, format=self.log_format, 
-                                      level=self.log_level, config_path=self.gopro_filepath)
+                                      level=self.log_level, config_path=self.config_filepath)
         await video_syn.gopro_manager.connect_cameras()
 
 
@@ -130,6 +125,15 @@ if __name__ == "__main__":
                         help="Set GoPro logging file path.")
 
     args = parser.parse_args()
-    app = MainApp(args)
+
+    gopro_filepath = f"./modules/VideoSynchronizer/logs/gopro/{datetime.now().strftime('%Y%m%d')}_gopro.log"
+    log_filepath   = f"./modules/VideoSynchronizer/logs/{datetime.now().strftime('%Y%m%d')}.log"
+    log_format     = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
+    log_level      = os.environ.get("LOGLEVEL", "INFO")
+
+    config_filepath = f"./modules/VideoSynchronizer/cfg/config.ini"
+    
+    app = MainApp(gopro_filepath=gopro_filepath, log_filepath=log_filepath, log_format=log_format,
+                  log_level=log_level, config_filepath=config_filepath, args=args)
 
     asyncio.run(app.run())

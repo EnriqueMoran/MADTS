@@ -1,11 +1,21 @@
 """
-TBD
+Implements base class for VideoSynchronizer classes.
 """
 
 import logging
 
 
 class BaseClass():
+    """
+    This is the base class for VideoSynchronizer classes.
+    Its purpose is to set up a common logger for all classes.
+    
+    Args:
+        - format (logging.Formatter): Logger format.
+        - filename (str): Path to store log file.
+        - level (str): Logger level.
+    """
+
     def __init__(self, filename:str, format:logging.Formatter, level:str):
         file_handler = logging.FileHandler(filename)
         file_handler.setLevel(level)
@@ -18,6 +28,7 @@ class BaseClass():
         console_handler.setFormatter(formatter)
 
         logger = logging.getLogger(self.__class__.__name__)
+        logger.setLevel(level)
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
         self.logger = logger
