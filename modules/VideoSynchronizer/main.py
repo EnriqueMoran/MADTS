@@ -78,6 +78,15 @@ class MainApp:
                 message = f"Warning: GoPro logging file path {log_path} not found. " +\
                           f"Defaulting to {self.gopro_filepath}."
                 print(message)
+        
+        if not args.keep_logs:
+            if os.path.exists(self.log_filepath):
+                with open(self.log_filepath, 'w'):
+                    pass
+
+            if os.path.exists(self.gopro_filepath):
+                with open(self.gopro_filepath, 'w'):
+                    pass
 
 
     def set_loggers(self) -> None:
@@ -106,7 +115,7 @@ class MainApp:
     async def test(self):
         video_syn = VideoSynchronizer(filename=self.log_filepath, format=self.log_format, 
                                       level=self.log_level, config_path=self.config_filepath)
-        await video_syn.gopro_manager.connect_cameras()
+        await video_syn.gopro_manager.start_streaming()
 
 
 if __name__ == "__main__":
@@ -123,6 +132,10 @@ if __name__ == "__main__":
     parser.add_argument("--gopro_log", 
                         type=str,
                         help="Set GoPro logging file path.")
+
+    parser.add_argument("--keep_logs", 
+                        type=bool,
+                        help="If enabled, won't clear logs files on new run.")
 
     args = parser.parse_args()
 

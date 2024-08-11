@@ -30,6 +30,4 @@ class VideoSynchronizer(BaseClass):
                                            config_path=config_path)
         self.gopro_manager = GoProManager(filename=filename, format=format, level=level,
                                           config_manager=self.config_parser)
-
-        self.config_parser.read_config()
     

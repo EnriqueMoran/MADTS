@@ -44,7 +44,11 @@ class ConfigManager(BaseClass):
             
             ##### GOPRO MANAGEMENT #####
             self.gopro_right_name = None
-            self.gopro_left_name = None
+            self.gopro_left_name  = None
+            self.record_stream    = None
+            self.use_http         = None
+
+            self.read_config()
 
             self.initialized = True
 
@@ -112,6 +116,22 @@ class ConfigManager(BaseClass):
             self.logger.info(f"Read GOPRO_MANAGEMENT - gopro_right_name: {self.gopro_right_name}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'gopro_right_name' in section 'GOPRO_MANAGEMENT': {e}"
+            self.logger.warning(warning_msg)
+            res = False 
+        
+        try:
+            self.record_stream = bool(int(config.get("GOPRO_MANAGEMENT", "record_stream")))
+            self.logger.info(f"Read GOPRO_MANAGEMENT - record_stream: {self.record_stream}.")
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'record_stream' in section 'GOPRO_MANAGEMENT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.use_http = bool(int(config.get("GOPRO_MANAGEMENT", "use_http")))
+            self.logger.info(f"Read GOPRO_MANAGEMENT - use_http: {self.use_http}.")
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'use_http' in section 'GOPRO_MANAGEMENT': {e}"
             self.logger.warning(warning_msg)
             res = False 
 
