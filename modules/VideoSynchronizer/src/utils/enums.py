@@ -9,11 +9,10 @@ class GoProAction(Enum):
     """
     TBD
     """
-    ENABLE_WIFI          = 1
-    CONNECT_WIFI         = 2
-    GET_STATUS           = 3
-    CONFIGURE_GOPRO      = 4
-    CHECK_GOPRO_IS_READY = 5
-    START_STREAMING      = 6
-    STOP_STREAMING       = 7
+    GET_STATUS_BLE       = 1
+    CONFIGURE_STREAM     = 2
+    CONECT_TO_NETWORK    = 3
+    CHECK_GOPRO_IS_READY = 4
+    START_STREAMING      = 5
+    STOP_STREAMING       = 6
 

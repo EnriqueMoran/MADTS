@@ -2,8 +2,6 @@
 Implements main class.
 """
 
-import logging
-
 from src.baseclass import BaseClass
 from src.configmanager import ConfigManager
 from src.gopromanager import GoProManager

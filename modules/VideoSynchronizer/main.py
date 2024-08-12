@@ -142,7 +142,7 @@ if __name__ == "__main__":
     gopro_filepath = f"./modules/VideoSynchronizer/logs/gopro/{datetime.now().strftime('%Y%m%d')}_gopro.log"
     log_filepath   = f"./modules/VideoSynchronizer/logs/{datetime.now().strftime('%Y%m%d')}.log"
     log_format     = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
-    log_level      = os.environ.get("LOGLEVEL", "INFO")
+    log_level      = os.environ.get("LOGLEVEL", "DEBUG")
 
     config_filepath = f"./modules/VideoSynchronizer/cfg/config.ini"
     
