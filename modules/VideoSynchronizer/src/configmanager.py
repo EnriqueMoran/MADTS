@@ -42,10 +42,6 @@ class ConfigManager(BaseClass):
             self.network_ssid       = None
             self.network_password   = None
             
-            ##### SYNC VIDEO  #####
-            self.gopro_right_out_url = None
-            self.gopro_left_out_url  = None
-            
             ##### GOPRO MANAGEMENT #####
             self.gopro_right_name = None
             self.gopro_left_name  = None
@@ -113,22 +109,6 @@ class ConfigManager(BaseClass):
             self.logger.info(f"Read RTMP_SERVER - network_password: {self.network_password}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'network_password' in section 'RTMP_SERVER': {e}"
-            self.logger.warning(warning_msg)
-            res = False
-
-        try:
-            self.gopro_left_out_url = str(config.get("SYNC_VIDEO", "gopro_left_url"))
-            self.logger.info(f"Read SYNC_VIDEO - gopro_left_url: {self.gopro_left_out_url}.")
-        except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'gopro_left_url' in section 'SYNC_VIDEO': {e}"
-            self.logger.warning(warning_msg)
-            res = False
-
-        try:
-            self.gopro_right_out_url = str(config.get("SYNC_VIDEO", "gopro_right_url"))
-            self.logger.info(f"Read SYNC_VIDEO - gopro_right_url: {self.gopro_right_out_url}.")
-        except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'gopro_right_url' in section 'SYNC_VIDEO': {e}"
             self.logger.warning(warning_msg)
             res = False
 
