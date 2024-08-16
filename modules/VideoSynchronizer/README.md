@@ -26,7 +26,7 @@ Configuration file has several sections to organize each parameter:
     - **gopro_right_name (str):** Right Go Pro identifier, should follow the format **GoPro XXXX** (e.g. *GoPro 1921*).
     - **record_stream (int):** Enable recording while streaming (**1**) or disable it (**0**).
 
-- **STREAM*:*
+- **STREAM*:**
     - **resolution (int):** Streaming resolution. Accepted values:
         - **0:** Stream in 480p. 
         - **1:** Stream in 720. 
@@ -73,3 +73,14 @@ The general workflow is the following:
 - In order to communicate the client to the GoPro, the GoPro must be on pairing mode: *Settings* > *Connect Device* > *GoPro Quik App*.
 - As communication between VideoSynchronizer and GoPros is made through bluetooth, the distance between them could be very short.
 - BLE communication frequently raises errors (e.g. *WinError -2147023673*, scanning for device timeout, etc.), a method that seems to *help* with these issues is to connect the GoPro to the mobile app, *GoPro Quik* and then reconnect the client to the GoPro. 
+
+
+## TODO
+
+- Retrieve and process camera status periodically.
+- Retrieve and process stream status periodically.
+- Check whether date and time can be retrieve from streaming.
+- Should VideoSynchronizer send a signal to other modules once videos are synchronized?
+- Catch common errors.
+- Retrieve streaming and connection quality (as shown in mobile app).
+- Manage connection losses-
