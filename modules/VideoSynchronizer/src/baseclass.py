@@ -5,6 +5,9 @@ Implements base class for VideoSynchronizer classes.
 import logging
 
 
+__author__ = "EnriqueMoran"
+
+
 class BaseClass():
     """
     This is the base class for VideoSynchronizer classes.

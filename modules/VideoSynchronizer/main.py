@@ -41,6 +41,13 @@ class MainApp:
 
         self.config_filepath = config_filepath
 
+        gopro_log_dir = os.path.dirname(self.gopro_filepath)
+        log_dir       = os.path.dirname(self.log_filepath)
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        if not os.path.exists(gopro_log_dir):
+            os.mkdir(gopro_log_dir)
+
         self._check_args(args)
         self.set_loggers()
 
