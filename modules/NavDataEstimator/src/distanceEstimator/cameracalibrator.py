@@ -103,10 +103,10 @@ class Calibrator(BaseClass):
                                                                     self.frame_size, None, None)
         
         self.logger.info(f"RMS: {rms}.")
-        self.logger.info(f"Camera matrix: {camera_matrix}.")
+        self.logger.info(f"Camera matrix: \n{camera_matrix}.")
         self.logger.info(f"Distortion coeff: {dist}.")
-        self.logger.info(f"Rotation vectors: {rvecs}.")
-        self.logger.info(f"Translation vectors: {tvecs}.")
+        self.logger.info(f"Rotation vectors: \n{rvecs}.")
+        self.logger.info(f"Translation vectors: \n{tvecs}.")
 
         return rms, camera_matrix, dist, rvecs, tvecs, obj_points_list, img_points_list
     
@@ -126,7 +126,7 @@ class Calibrator(BaseClass):
         img = cv2.imread(image_path)
         height, width = img.shape[:2]
         new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(camera_matrix, dist, (width,height),
-                                                               1, (width,height))
+                                                               0.9, (width,height))
         
         if method.lower() == 'undistort':
             dst = cv2.undistort(img, camera_matrix, dist, None, new_camera_matrix)
