@@ -2,12 +2,13 @@
 TBD
 """
 import argparse
-import logging
 import os
 
 from datetime import datetime
 from pathlib import Path
+
 from src.navdataestimator import NavDataEstimator
+from src.distanceEstimator.cameracalibrator import Calibrator
 
 
 __author__ = "EnriqueMoran"
@@ -76,8 +77,40 @@ class MainApp:
 
 
     def test(self):
-        nav_estimator = NavDataEstimator(filename=self.log_filepath, format=self.log_format, 
-                                      level=self.log_level, config_path=self.config_filepath)
+        nav_data_estimator = NavDataEstimator(filename=self.log_filepath, format=self.log_format, 
+                                              level=self.log_level, config_path=self.config_filepath)
+        
+        img_dir_left        = nav_data_estimator.config_parser.left_image_directory
+        chessboard_width_l  = nav_data_estimator.config_parser.left_chessboard_width
+        chessboard_height_l = nav_data_estimator.config_parser.left_chessboard_height
+        frame_width_l       = nav_data_estimator.config_parser.left_frame_width
+        frame_height_l      = nav_data_estimator.config_parser.left_frame_height
+        square_size_l       = nav_data_estimator.config_parser.left_square_size
+        save_calibrated_l   = nav_data_estimator.config_parser.left_save_calibrated
+        params_path_l       = nav_data_estimator.config_parser.left_params_directory
+
+        calibrator_left = Calibrator(filename=self.log_filepath, format=self.log_format,
+                                     level=self.log_level, image_dir=img_dir_left,
+                                     chessboard_width=chessboard_width_l,
+                                     chessboard_height=chessboard_height_l,
+                                     frame_width=frame_width_l,
+                                     frame_height=frame_height_l, square_size=square_size_l,
+                                     save_calibrated=save_calibrated_l,
+                                     params_path=params_path_l)
+        res = calibrator_left.calibrate_camera()
+        rms, camera_matrix, dist, rvecs, tvecs, obj_points_list, img_points_list = res
+
+        calibrator_left.save_calibration(camera_matrix=camera_matrix, dist=dist)
+
+        undistorted_img = calibrator_left.undistort_image(camera_matrix, dist,
+                                                          Path("./modules/NavDataEstimator/calibration/left/img1.jpg").resolve())
+        
+        repr_error = calibrator_left.get_reprojection_error(obj_points_list, img_points_list, 
+                                                            rvecs, tvecs, dist, camera_matrix)
+        print(f"Total error: {repr_error}")
+        import cv2
+        cv2.imwrite("./modules/NavDataEstimator/test/undistorted1.jpg", undistorted_img)
+
 
 
 if __name__ == "__main__":
@@ -91,7 +124,7 @@ if __name__ == "__main__":
                         type=str,
                         help="Set logging file path.")
 
-    parser.add_argument("--keep_logs", 
+    parser.add_argument("--keep_logs",
                         type=bool,
                         help="If enabled, won't clear logs files on new run.")
 
