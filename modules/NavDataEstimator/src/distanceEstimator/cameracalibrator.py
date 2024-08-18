@@ -8,13 +8,11 @@ Based on: https://github.com/niconielsen32/CameraCalibration/blob/main/calibrati
 """
 
 import cv2
-import glob
 import numpy as np
 import pickle
 
 from pathlib import Path
 from src.baseclass import BaseClass
-from src.configmanager import ConfigManager
 
 
 __author__ = "EnriqueMoran"
@@ -110,20 +108,87 @@ class Calibrator(BaseClass):
 
         return rms, camera_matrix, dist, rvecs, tvecs, obj_points_list, img_points_list
     
-    def save_calibration(self, camera_matrix, dist):
+
+    def calibrate_camera_video(self, video_path:Path, step=30):
+        """
+        TBD
+        """
+        self.logger.info(f"Calibrating camera using video with a step of {step} frames...")
+
+        obj_points = np.zeros((self.chessboard_width * self.chessboard_height, 3), np.float32)
+        obj_points[:,:2] = np.mgrid[0:self.chessboard_width, 0:self.chessboard_height].T.reshape(-1, 2)
+        obj_points *= self.square_size
+
+        obj_points_list = []  # 3D points in real-world space
+        img_points_list = []  # 2D points in image plane
+
+        cap = cv2.VideoCapture(str(video_path))
+        if not cap.isOpened():
+            self.logger.error(f"Failed to open video file: {video_path}")
+            return None
+
+        frame_idx = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Procesa solo cada N-ésimo fotograma
+            if frame_idx % step == 0:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                gray = cv2.resize(gray, (1280, 720))
+                chessboard_size = (self.chessboard_width, self.chessboard_height)
+                ret, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
+
+                if ret:
+                    refined_corners = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), self.termination_criteria)
+                    img_points_list.append(refined_corners)
+                    obj_points_list.append(obj_points)
+
+                    if self.save_calibrated_img:
+                        save_dir  = self.params_path / "calibrated"
+                        save_dir.mkdir(parents=True, exist_ok=True)
+
+                        save_path = save_dir / f"frame_{frame_idx}.jpg"
+                        cv2.drawChessboardCorners(frame, chessboard_size, refined_corners, ret)
+                        cv2.imwrite(str(save_path), frame)
+                        self.logger.info(f"Saved frame with calibration corners to {save_path}.")
+
+            frame_idx += 1
+
+        cap.release()
+
+        if len(obj_points_list) < 1:
+            self.logger.error("No valid calibration data was found in the video.")
+            return None
+
+        rms, camera_matrix, dist, rvecs, tvecs = cv2.calibrateCamera(obj_points_list, 
+                                                                    img_points_list, 
+                                                                    gray.shape[::-1], None, None)
+        
+        self.logger.info(f"RMS: {rms}.")
+        self.logger.info(f"Camera matrix: \n{camera_matrix}.")
+        self.logger.info(f"Distortion coefficients: {dist}.")
+        self.logger.info(f"Rotation vectors: \n{rvecs}.")
+        self.logger.info(f"Translation vectors: \n{tvecs}.")
+
+        return rms, camera_matrix, dist, rvecs, tvecs, obj_points_list, img_points_list
+
+
+    def save_calibration(self, camera_matrix, dist, rvecs, tvecs, obj_points, img_points):
         """
         TBD
         """
         self.params_path.mkdir(parents=True, exist_ok=True)
-        pickle.dump((camera_matrix, dist), open(self.params_path / "calibration.pkl", "wb" ))
+        pickle.dump((camera_matrix, dist, rvecs, tvecs, obj_points, img_points), 
+                    open(self.params_path / "calibration.pkl", "wb" ))
         self.logger.info(f"Calibration params saved as: {self.params_path / 'calibration.pkl'}.")
 
 
-    def undistort_image(self, camera_matrix, dist, image_path:Path, method='undistort'):
+    def undistort_image(self, camera_matrix, dist, img, method='undistort'):
         """
         TBD
         """
-        img = cv2.imread(image_path)
         height, width = img.shape[:2]
         new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(camera_matrix, dist, (width,height),
                                                                0.9, (width,height))

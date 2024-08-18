@@ -4,7 +4,7 @@ Implements main class.
 
 from src.baseclass import BaseClass
 from src.configmanager import ConfigManager
-from src.distanceEstimator.calibrationmanager import CalibrationManager
+from src.distanceEstimator.distancecalculator import DistanceCalculator
 
 
 __author__ = "EnriqueMoran"
@@ -29,11 +29,11 @@ class NavDataEstimator(BaseClass):
                                            level=level, 
                                            config_path=config_path)
         
-        self.calibration_manager = CalibrationManager(filename=filename, 
+        self.distance_calculator = DistanceCalculator(filename=filename, 
                                                       format=format, 
                                                       level=level, 
                                                       config_path=config_path)
         
-        self.calibration_manager.calibrate_cameras()
+        #self.distance_calculator.calibrate_cameras()
         
     

@@ -2,6 +2,8 @@
 Implements calibration managemer class.
 """
 
+import cv2
+import numpy as np
 import os
 
 from src.baseclass import BaseClass
@@ -12,7 +14,7 @@ from src.distanceEstimator.cameracalibrator import Calibrator
 __author__ = "EnriqueMoran"
 
 
-class CalibrationManager(BaseClass):
+class DistanceCalculator(BaseClass):
     """
     TBD
     
@@ -69,9 +71,9 @@ class CalibrationManager(BaseClass):
         if not os.path.exists(params_path_r):
             self.logger.warning(f"Parameters directory for right camera: {params_path_r} not found!")
         
-        self.calibrator_left = Calibrator(filename=self.log_filepath, 
+        self.left_calibrator = Calibrator(filename=self.log_filepath, 
                                           format=self.log_format,
-                                          level=self.log_level, 
+                                          level=self.log_level,
                                           image_dir=img_dir_left,
                                           chessboard_width=chessboard_width_l,
                                           chessboard_height=chessboard_height_l,
@@ -82,7 +84,7 @@ class CalibrationManager(BaseClass):
                                           params_path=params_path_l)
         self.logger.info(f"Left camera calibrator created.")
         
-        self.calibrator_right = Calibrator(filename=self.log_filepath, 
+        self.right_calibrator = Calibrator(filename=self.log_filepath, 
                                            format=self.log_format,
                                            level=self.log_level, 
                                            image_dir=img_dir_right,
@@ -98,28 +100,82 @@ class CalibrationManager(BaseClass):
 
     def calibrate_cameras(self, save_calibrations=True):
         self.logger.info(f"Calibrating left camera...")
-        res_l = self.calibrator_left.calibrate_camera()
+        res_l = self.left_calibrator.calibrate_camera()
         rms_l, camera_matrix_l, dist_l, rvecs_l, tvecs_l, obj_points_list_l, img_points_list_l = res_l
 
-        repr_error_l = self.calibrator_left.get_reprojection_error(obj_points_list_l, 
-                                                                   img_points_list_l, 
+        repr_error_l = self.left_calibrator.get_reprojection_error(obj_points_list_l,
+                                                                   img_points_list_l,
                                                                    rvecs_l, tvecs_l, dist_l, 
                                                                    camera_matrix_l)
         self.logger.info(f"Left camera calibrated, reprojection error: {repr_error_l:.16f}")
 
         if save_calibrations:
-            self.calibrator_left.save_calibration(camera_matrix=camera_matrix_l, dist=dist_l)
+            self.left_calibrator.save_calibration(camera_matrix=camera_matrix_l, dist=dist_l)
         
 
-        res_r = self.calibrator_right.calibrate_camera()
+        res_r = self.right_calibrator.calibrate_camera()
         rms_r, camera_matrix_r, dist_r, rvecs_r, tvecs_r, obj_points_rist_r, img_points_rist_r = res_r
 
-        repr_error_r = self.calibrator_right.get_reprojection_error(obj_points_rist_r, 
+        repr_error_r = self.right_calibrator.get_reprojection_error(obj_points_rist_r, 
                                                                     img_points_rist_r, 
                                                                     rvecs_r, tvecs_r, dist_r, 
                                                                     camera_matrix_r)
-        self.logger.info(f"Right camera calibrated, reprojection error: {repr_error_r:.6f}")
+        self.logger.info(f"Right camera calibrated, reprojection error: {repr_error_r:.16f}")
 
         if save_calibrations:
-            self.calibrator_right.save_calibration(camera_matrix=camera_matrix_r, dist=dist_r)
+            self.right_calibrator.save_calibration(camera_matrix=camera_matrix_r, dist=dist_r)
+    
+
+    def calibrate_cameras_video(self, video_path_l, video_path_r, save_calibrations=True, step=30):
+        self.logger.info(f"Calibrating left camera...")
+        res_l = self.left_calibrator.calibrate_camera_video(video_path=video_path_l, step=step)
+        rms_l, camera_matrix_l, dist_l, rvecs_l, tvecs_l, obj_points_list_l, img_points_list_l = res_l
+
+        repr_error_l = self.left_calibrator.get_reprojection_error(obj_points_list_l,
+                                                                   img_points_list_l,
+                                                                   rvecs_l, tvecs_l, dist_l, 
+                                                                   camera_matrix_l)
+        self.logger.info(f"Left camera calibrated, reprojection error: {repr_error_l:.16f}")
+
+        if save_calibrations:
+            self.left_calibrator.save_calibration(camera_matrix=camera_matrix_l, dist=dist_l,
+                                                   rvecs=rvecs_l, tvecs=tvecs_l, 
+                                                   obj_points=obj_points_list_l,
+                                                   img_points=img_points_list_l)
+        
+
+        res_r = self.right_calibrator.calibrate_camera_video(video_path=video_path_r, step=step)
+        rms_r, camera_matrix_r, dist_r, rvecs_r, tvecs_r, obj_points_rist_r, img_points_rist_r = res_r
+
+        repr_error_r = self.right_calibrator.get_reprojection_error(obj_points_rist_r, 
+                                                                    img_points_rist_r, 
+                                                                    rvecs_r, tvecs_r, dist_r, 
+                                                                    camera_matrix_r)
+        self.logger.info(f"Right camera calibrated, reprojection error: {repr_error_r:.16f}")
+
+        if save_calibrations:
+            self.right_calibrator.save_calibration(camera_matrix=camera_matrix_r, dist=dist_r,
+                                                   rvecs=rvecs_r, tvecs=tvecs_r, 
+                                                   obj_points=obj_points_rist_r,
+                                                   img_points=img_points_rist_r)
+    
+
+    def get_depth_map(self, left_image:np.ndarray, right_image:np.ndarray, n_disparities:int=0, 
+                      block_size:int=21):
+        """
+        TBD
+        """
+        height_l, width_l = left_image.shape[:2]
+        height_r, width_r = right_image.shape[:2]
+
+        # Calcular el tamaño promedio
+        avg_width = (width_l + width_r) // 2
+        avg_height = (height_l + height_r) // 2
+
+        resized_img_l = cv2.resize(left_image, (avg_width, avg_height))
+        resized_img_r = cv2.resize(right_image, (avg_width, avg_height))
+
+
+        stereo = cv2.StereoBM_create(numDisparities=n_disparities, blockSize=block_size)
+        return stereo.compute(resized_img_l, resized_img_r)
         

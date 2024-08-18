@@ -2,7 +2,10 @@
 TBD
 """
 import argparse
+import cv2
+import numpy as np
 import os
+import pickle
 
 from datetime import datetime
 from pathlib import Path
@@ -77,9 +80,102 @@ class MainApp:
 
 
     def test(self):
+        def draw_horizontal_lines(image, line_interval=50, color=(0, 0, 255), thickness=1):
+            height, width = image.shape[:2]
+            
+            # Dibujar líneas horizontales espaciadas por 'line_interval' píxeles
+            for y in range(0, height, line_interval):
+                cv2.line(image, (0, y), (width, y), color, thickness)
+            
+            return image
+
         nav_data_estimator = NavDataEstimator(filename=self.log_filepath, format=self.log_format, 
                                               level=self.log_level, config_path=self.config_filepath)
         
+        left_video_path  = Path("./modules/NavDataEstimator/calibration/left_images/left_camera.mp4").resolve()
+        right_video_path = Path("./modules/NavDataEstimator/calibration/right_images/right_camera.mp4").resolve()
+        #nav_data_estimator.distance_calculator.calibrate_cameras_video(left_video_path, 
+        #                                                               right_video_path,
+        #                                                               step=20)
+        
+
+        test_img_l = cv2.imread("./modules/NavDataEstimator/test/left.jpg",  cv2.IMREAD_GRAYSCALE)
+        test_img_r = cv2.imread("./modules/NavDataEstimator/test/right.jpg", cv2.IMREAD_GRAYSCALE)
+
+        test_img_l = cv2.resize(test_img_l, (1280, 720))
+        test_img_r = cv2.resize(test_img_r, (1280, 720))
+
+        with open("./modules/NavDataEstimator/calibration/params/left/calibration.pkl", 'rb') as file:
+            camera_matrix_l, dist_l, rvecs_l, tvecs_l, obj_points_list_l, img_points_list_l = pickle.load(file)
+        
+        with open("./modules/NavDataEstimator/calibration/params/right/calibration.pkl", 'rb') as file:
+            camera_matrix_r, dist_r, rvecs_r, tvecs_r, obj_points_list_r, img_points_list_r = pickle.load(file)
+
+        retval, _, _, _, _, R, T, _, _ = cv2.stereoCalibrate(
+            obj_points_list_l, img_points_list_l, img_points_list_r,
+            camera_matrix_l, dist_l, camera_matrix_r, dist_r,
+            (1280, 720),
+            flags=cv2.CALIB_FIX_INTRINSIC
+        )
+
+        R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(
+            camera_matrix_l, dist_l, camera_matrix_r, dist_r,
+            (1280, 720), R, T, alpha=1
+        )
+
+        map_left_x, map_left_y = cv2.initUndistortRectifyMap(
+            camera_matrix_l, dist_l, R1, P1, (1280, 720), cv2.CV_32FC1
+        )
+
+        map_right_x, map_right_y = cv2.initUndistortRectifyMap(
+            camera_matrix_r, dist_r, R2, P2, (1280, 720), cv2.CV_32FC1
+        )
+
+        rectified_left = cv2.remap(test_img_l, map_left_x, map_left_y, cv2.INTER_LINEAR)
+        rectified_right = cv2.remap(test_img_r, map_right_x, map_right_y, cv2.INTER_LINEAR)
+
+        rectified_left_with_lines = draw_horizontal_lines(rectified_left.copy(), line_interval=50, color=(0, 0, 255), thickness=2)
+        rectified_right_with_lines = draw_horizontal_lines(rectified_right.copy(), line_interval=50, color=(0, 0, 255), thickness=2)
+        combined_image = cv2.hconcat([rectified_left_with_lines, rectified_right_with_lines])
+
+        rectified_left_with_roi = rectified_left.copy()
+        rectified_right_with_roi = rectified_right.copy()
+        cv2.rectangle(rectified_left_with_roi, (roi1[0], roi1[1]), (roi1[0] + roi1[2], roi1[1] + roi1[3]), (0, 255, 0), 2)
+        cv2.rectangle(rectified_right_with_roi, (roi2[0], roi2[1]), (roi2[0] + roi2[2], roi2[1] + roi2[3]), (0, 255, 0), 2)
+        cv2.imshow('Rectified Left Image with ROI', rectified_left_with_roi)
+        #cv2.imshow('Rectified Right Image with ROI', rectified_right_with_roi)
+        #cv2.waitKey(0)
+
+
+        #cv2.imshow('Rectified Left Image', cv2.resize(rectified_left, (1280, 720)))
+        #cv2.imshow('Rectified Right Image', cv2.resize(rectified_right, (1280, 720)))
+        #cv2.imshow('Images', cv2.resize(combined_image, (1280, 720)))
+        
+        undistorted_img_l = nav_data_estimator.distance_calculator.left_calibrator.undistort_image(
+            camera_matrix_l, dist_l, test_img_l)
+        undistorted_img_r = nav_data_estimator.distance_calculator.right_calibrator.undistort_image(
+            camera_matrix_r, dist_r, test_img_r)
+        
+        #cv2.imshow("undistorted_img_l", cv2.resize(test_img_l, (1280, 720)))
+        #cv2.waitKey(0)
+        #cv2.imshow("undistorted_img_r map", cv2.resize(test_img_r, (1280, 720)))
+        #cv2.waitKey(0)
+
+        depth_map = nav_data_estimator.distance_calculator.get_depth_map(rectified_left,
+                                                                         rectified_right,
+                                                                         n_disparities=0,
+                                                                         block_size=13)
+
+        depth_map_normalized = cv2.normalize(depth_map, None, 0, 255, cv2.NORM_MINMAX)
+
+        depth_map_normalized = np.uint8(depth_map_normalized)
+
+        depth_map_colored = cv2.applyColorMap(depth_map_normalized, cv2.COLORMAP_VIRIDIS)
+        
+        cv2.imshow("Depth map", cv2.resize(depth_map_colored, (1280, 720)))
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
 
 
 if __name__ == "__main__":
