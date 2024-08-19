@@ -1,5 +1,9 @@
 from dataclasses import dataclass
 
+
+__author__ = "EnriqueMoran"
+
+
 @dataclass
 class CameraSpecs:
     focal_length: float

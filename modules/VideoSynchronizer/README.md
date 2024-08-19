@@ -26,7 +26,7 @@ Configuration file has several sections to organize each parameter:
     - **gopro_right_name (str):** Right Go Pro identifier, should follow the format **GoPro XXXX** (e.g. *GoPro 1921*).
     - **record_stream (int):** Enable recording while streaming (**1**) or disable it (**0**).
 
-- **STREAM*:**
+- **STREAM:**
     - **resolution (int):** Streaming resolution. Accepted values:
         - **0:** Stream in 480p. 
         - **1:** Stream in 720. 

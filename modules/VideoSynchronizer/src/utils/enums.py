@@ -5,6 +5,9 @@ TBD
 from enum import Enum
 
 
+__author__ = "EnriqueMoran"
+
+
 class GoProAction(Enum):
     """
     TBD

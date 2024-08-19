@@ -8,6 +8,8 @@ import src.utils.globals
 from pathlib import Path
 
 from src.baseclass import BaseClass
+from src.utils.structs import *
+
 
 
 __author__ = "EnriqueMoran"
@@ -37,25 +39,14 @@ class ConfigManager(BaseClass):
             self.config_path = Path(config_path).resolve()
 
             ##### RTMP SERVER #####
-            self.gopro_right_in_url = None
-            self.gopro_left_in_url  = None
-            self.network_ssid       = None
-            self.network_password   = None
+            self.rtmp = RTMP(None, None, None, None)
             
             ##### GOPRO MANAGEMENT #####
-            self.gopro_right_name = None
-            self.gopro_left_name  = None
-            self.record_stream    = None
+            self.gopro = GoPro(None, None)
 
             ##### STREAM MANAGEMENT #####
-            self.resolution  = None
-            self.min_bitrate = None
-            self.max_bitrate = None
-            self.starting_bitrate = None
-            self.fov = None
-            self.fps = None            # TODO
-            self.duration = None       # TODO
-            self.hypersmooth = None    # TODO
+            self.stream = Stream(None, None, None, None, None, None, None,
+                                 None, None)
 
             self.read_config()
 
@@ -81,128 +72,122 @@ class ConfigManager(BaseClass):
         res = True    # All configuration could be read succesfully
 
         try:
-            self.gopro_left_in_url = str(config.get("RTMP_SERVER", "gopro_left_url"))
-            self.logger.info(f"Read RTMP_SERVER - gopro_left_url: {self.gopro_left_in_url}.")
+            self.rtmp.left_camera_url = str(config.get("RTMP_SERVER", "gopro_left_url"))
+            self.logger.info(f"Read RTMP_SERVER - gopro_left_url: {self.rtmp.left_camera_url}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'gopro_left_url' in section 'RTMP_SERVER': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.gopro_right_in_url = str(config.get("RTMP_SERVER", "gopro_right_url"))
-            self.logger.info(f"Read RTMP_SERVER - gopro_right_url: {self.gopro_right_in_url}.")
+            self.rtmp.right_camera_url = str(config.get("RTMP_SERVER", "gopro_right_url"))
+            self.logger.info(f"Read RTMP_SERVER - gopro_right_url: {self.rtmp.right_camera_url}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'gopro_right_url' in section 'RTMP_SERVER': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.network_ssid = str(config.get("RTMP_SERVER", "network_ssid"))
-            self.logger.info(f"Read RTMP_SERVER - network_ssid: {self.network_ssid}.")
+            self.rtmp.network_ssid = str(config.get("RTMP_SERVER", "network_ssid"))
+            self.logger.info(f"Read RTMP_SERVER - network_ssid: {self.rtmp.network_ssid}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'network_ssid' in section 'RTMP_SERVER': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.network_password = str(config.get("RTMP_SERVER", "network_password"))
-            self.logger.info(f"Read RTMP_SERVER - network_password: {self.network_password}.")
+            self.rtmp.network_password = str(config.get("RTMP_SERVER", "network_password"))
+            self.logger.info(f"Read RTMP_SERVER - network_password: {self.rtmp.network_password}.")
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'network_password' in section 'RTMP_SERVER': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.gopro_left_name = str(config.get("GOPRO_MANAGEMENT", "gopro_left_name"))
-            self.logger.info(f"Read GOPRO_MANAGEMENT - gopro_left_name: {self.gopro_left_name}.")
+            self.gopro.left_camera_name = str(config.get("GOPRO_MANAGEMENT", "gopro_left_name"))
+            msg = f"Read GOPRO_MANAGEMENT - gopro_left_name: {self.gopro.left_camera_name}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'gopro_left_name' in section 'GOPRO_MANAGEMENT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.gopro_right_name = str(config.get("GOPRO_MANAGEMENT", "gopro_right_name"))
-            self.logger.info(f"Read GOPRO_MANAGEMENT - gopro_right_name: {self.gopro_right_name}.")
+            self.gopro.right_camera_name = str(config.get("GOPRO_MANAGEMENT", "gopro_right_name"))
+            msg = f"Read GOPRO_MANAGEMENT - gopro_right_name: {self.gopro.right_camera_name}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'gopro_right_name' in section 'GOPRO_MANAGEMENT': {e}"
             self.logger.warning(warning_msg)
             res = False 
-        
-        try:
-            self.record_stream = bool(int(config.get("GOPRO_MANAGEMENT", "record_stream")))
-            self.logger.info(f"Read GOPRO_MANAGEMENT - record_stream: {self.record_stream}.")
-        except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'record_stream' in section 'GOPRO_MANAGEMENT': {e}"
-            self.logger.warning(warning_msg)
-            res = False
 
         try:
-            self.resolution = int(config.get("STREAM", "resolution"))
-            self.logger.info(f"Read STREAM - resolution: {self.resolution}.")
+            self.stream.resolution = int(config.get("STREAM", "resolution"))
+            self.logger.info(f"Read STREAM - resolution: {self.stream.resolution}.")
 
-            if self.resolution not in src.utils.globals.RESOLUTION:
+            if self.stream.resolution not in src.utils.globals.RESOLUTION:
                 warning_msg = f"Value not admitted, valid values: {src.utils.globals.RESOLUTION},"+\
                               f" setting value to {src.utils.globals.RESOLUTION[0]}."
                 self.logger.warning(warning_msg)
-                self.resolution = src.utils.globals.RESOLUTION
+                self.stream.resolution = src.utils.globals.RESOLUTION
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'resolution' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.min_bitrate = int(config.get("STREAM", "min_bitrate"))
-            self.logger.info(f"Read STREAM - min_bitrate: {self.min_bitrate}.")
+            self.stream.min_bitrate = int(config.get("STREAM", "min_bitrate"))
+            self.logger.info(f"Read STREAM - min_bitrate: {self.stream.min_bitrate}.")
 
-            if self.min_bitrate < src.utils.globals.MIN_BITRATE:
-                warning_msg = f"Minimum valid value: {src.utils.globals.MIN_BITRATE}, setting value " +\
-                              f"to {src.utils.globals.MIN_BITRATE}."
+            if self.stream.min_bitrate < src.utils.globals.MIN_BITRATE:
+                warning_msg = f"Minimum valid value: {src.utils.globals.MIN_BITRATE}, " +\
+                              f"setting value to {src.utils.globals.MIN_BITRATE}."
                 self.logger.warning(warning_msg)
-                self.min_bitrate = src.utils.globals.MIN_BITRATE
+                self.stream.min_bitrate = src.utils.globals.MIN_BITRATE
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'min_bitrate' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.max_bitrate = int(config.get("STREAM", "max_bitrate"))
-            self.logger.info(f"Read STREAM - max_bitrate: {self.max_bitrate}.")
+            self.stream.max_bitrate = int(config.get("STREAM", "max_bitrate"))
+            self.logger.info(f"Read STREAM - max_bitrate: {self.stream.max_bitrate}.")
 
-            if self.max_bitrate > src.utils.globals.MAX_BITRATE:
-                warning_msg = f"Maximum valid value: {src.utils.globals.MAX_BITRATE}, setting value " +\
-                              f"to {src.utils.globals.MAX_BITRATE}."
+            if self.stream.max_bitrate > src.utils.globals.MAX_BITRATE:
+                warning_msg = f"Maximum valid value: {src.utils.globals.MAX_BITRATE}, " +\
+                              f"setting value to {src.utils.globals.MAX_BITRATE}."
                 self.logger.warning(warning_msg)
-                self.max_bitrate = src.utils.globals.MAX_BITRATE
+                self.stream.max_bitrate = src.utils.globals.MAX_BITRATE
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'max_bitrate' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.starting_bitrate = int(config.get("STREAM", "starting_bitrate"))
-            self.logger.info(f"Read STREAM - starting_bitrate: {self.starting_bitrate}.")
+            self.stream.starting_bitrate = int(config.get("STREAM", "starting_bitrate"))
+            self.logger.info(f"Read STREAM - starting_bitrate: {self.stream.starting_bitrate}.")
 
-            if self.starting_bitrate < src.utils.globals.MIN_BITRATE:
-                warning_msg = f"Minimum valid value: {src.utils.globals.MIN_BITRATE}, setting value " +\
-                              f"to {src.utils.globals.MIN_BITRATE}."
+            if self.stream.starting_bitrate < src.utils.globals.MIN_BITRATE:
+                warning_msg = f"Minimum valid value: {src.utils.globals.MIN_BITRATE}, " +\
+                              f"setting value to {src.utils.globals.MIN_BITRATE}."
                 self.logger.warning(warning_msg)
-                self.starting_bitrate = src.utils.globals.MIN_BITRATE
+                self.stream.starting_bitrate = src.utils.globals.MIN_BITRATE
             
-            if self.starting_bitrate > src.utils.globals.MAX_BITRATE:
-                warning_msg = f"Maximum valid value: {src.utils.globals.MAX_BITRATE}, setting value " +\
-                              f"to {src.utils.globals.MAX_BITRATE}."
+            if self.stream.starting_bitrate > src.utils.globals.MAX_BITRATE:
+                warning_msg = f"Maximum valid value: {src.utils.globals.MAX_BITRATE}, " +\
+                              f"setting value to {src.utils.globals.MAX_BITRATE}."
                 self.logger.warning(warning_msg)
-                self.starting_bitrate = src.utils.globals.MAX_BITRATE
+                self.stream.starting_bitrate = src.utils.globals.MAX_BITRATE
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'starting_bitrate' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.fov = int(config.get("STREAM", "fov"))
-            self.logger.info(f"Read STREAM - fov: {self.fov}.")
+            self.stream.fov = int(config.get("STREAM", "fov"))
+            self.logger.info(f"Read STREAM - fov: {self.stream.fov}.")
 
-            if self.fov not in src.utils.globals.FOV:
+            if self.stream.fov not in src.utils.globals.FOV:
                 warning_msg = f"Value not admitted, valid values: {src.utils.globals.FOV}, "+\
                     f"setting value to {src.utils.globals.FOV[0]}."
                 self.logger.warning(warning_msg)
@@ -211,7 +196,37 @@ class ConfigManager(BaseClass):
             self.logger.warning(warning_msg)
             res = False
 
+        try:
+            self.stream.fps = int(config.get("STREAM", "fps"))
+            self.logger.info(f"Read STREAM - fps: {self.stream.fps}.")
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'fps' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.stream.duration = int(config.get("STREAM", "duration"))
+            self.logger.info(f"Read STREAM - duration: {self.stream.duration}.")
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'duration' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.stream.hypersmooth = bool(int(config.get("STREAM", "hypersmooth")))
+            self.logger.info(f"Read STREAM - hypersmooth: {self.stream.hypersmooth}.")
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'hypersmooth' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.stream.record_stream = bool(int(config.get("STREAM", "record_stream")))
+            self.logger.info(f"Read STREAM - record_stream: {self.stream.record_stream}.")
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'record_stream' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
         self.logger.info(f"Finished reading configuration, all params read successfully: {res}.")
         return res
-
-        
