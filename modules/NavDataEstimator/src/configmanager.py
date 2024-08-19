@@ -5,8 +5,8 @@ Implements configuration parser class.
 import configparser
 
 from pathlib import Path
-
 from src.baseclass import BaseClass
+from src.utils.structs import *
 
 
 __author__ = "EnriqueMoran"
@@ -36,37 +36,24 @@ class ConfigManager(BaseClass):
             self.config_path = Path(config_path).resolve()
 
             ##### LEFT_CAMERA #####
-            self.left_focal_lenght = None
-            self.left_pixel_size   = None
-            self.left_fov          = None
+            self.left_camera_specs = CameraSpecs(None, None, None)
             
             ##### RIGHT_CAMERA #####
-            self.right_focal_lenght = None
-            self.right_pixel_size   = None
-            self.right_fov          = None
+            self.right_camera_specs = CameraSpecs(None, None, None)
 
             ##### SYSTEM_SETUP #####
-            self.baseline_distance = None
+            self.system_setup = SystemSetup(None)
 
             ##### CALIBRATION_LEFT #####
-            self.left_image_directory   = None
-            self.left_chessboard_width  = None
-            self.left_chessboard_height = None
-            self.left_square_size       = None
-            self.left_frame_width       = None
-            self.left_frame_height      = None
-            self.left_save_calibrated   = None
-            self.left_params_directory  = None
+            self.left_camera_calibration = CalibrationSpecs(None, None, None, None, 
+                                                            None, None, None, None)
             
             ##### CALIBRATION_RIGHT #####
-            self.right_image_directory   = None
-            self.right_chessboard_width  = None
-            self.right_chessboard_height = None
-            self.right_square_size       = None
-            self.right_frame_width       = None
-            self.right_frame_height      = None
-            self.right_save_calibrated   = None
-            self.right_params_directory  = None
+            self.right_camera_calibration = CalibrationSpecs(None, None, None, None, 
+                                                             None, None, None, None)
+            
+            ##### PARAMETERS #####
+            self.parameters = Parameters(None, None, None, None)
 
             self.read_config()
 
@@ -92,186 +79,307 @@ class ConfigManager(BaseClass):
         res = True    # All configuration could be read succesfully
 
         try:
-            self.left_focal_lenght = int(config.get("LEFT_CAMERA", "focal_length"))
-            self.logger.info(f"Read LEFT_CAMERA - focal_length: {self.left_focal_lenght}.")
+            self.left_camera_specs.focal_lenght = float(config.get("LEFT_CAMERA_SPECS", 
+                                                                   "focal_length"))
+            msg = f"Read LEFT_CAMERA - focal_length: {self.left_camera_specs.focal_lenght}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'focal_length' in section 'LEFT_CAMERA': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.left_pixel_size = float(config.get("LEFT_CAMERA", "pixel_size"))
-            self.logger.info(f"Read LEFT_CAMERA - pixel_size: {self.left_pixel_size}.")
+            self.left_camera_specs.pixel_size = float(config.get("LEFT_CAMERA_SPECS", "pixel_size"))
+            msg = f"Read LEFT_CAMERA - pixel_size: {self.left_camera_specs.pixel_size}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'pixel_size' in section 'LEFT_CAMERA': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.fov = float(config.get("LEFT_CAMERA", "horizontal_fov"))
-            self.logger.info(f"Read LEFT_CAMERA - horizontal_fov: {self.fov}.")
+            self.left_camera_specs.fov = float(config.get("LEFT_CAMERA_SPECS", "horizontal_fov"))
+            msg = f"Read LEFT_CAMERA - horizontal_fov: {self.left_camera_specs.fov}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'horizontal_fov' in section 'LEFT_CAMERA': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.right_focal_lenght = int(config.get("RIGHT_CAMERA", "focal_length"))
-            self.logger.info(f"Read RIGHT_CAMERA - focal_length: {self.right_focal_lenght}.")
+            self.right_camera_specsfocal_lenght = int(config.get("RIGHT_CAMERA_SPECS", 
+                                                                 "focal_length"))
+            msg = f"Read RIGHT_CAMERA - focal_length: {self.right_camera_specsfocal_lenght}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'focal_length' in section 'RIGHT_CAMERA': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.right_pixel_size = float(config.get("RIGHT_CAMERA", "pixel_size"))
-            self.logger.info(f"Read RIGHT_CAMERA - pixel_size: {self.right_pixel_size}.")
+            self.right_camera_specs.pixel_size = float(config.get("RIGHT_CAMERA_SPECS", 
+                                                                  "pixel_size"))
+            msg = f"Read RIGHT_CAMERA - pixel_size: {self.right_camera_specs.pixel_size}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'pixel_size' in section 'RIGHT_CAMERA': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.fov = float(config.get("RIGHT_CAMERA", "horizontal_fov"))
-            self.logger.info(f"Read RIGHT_CAMERA - horizontal_fov: {self.fov}.")
+            self.right_camera_specs.fov = float(config.get("RIGHT_CAMERA_SPECS", "horizontal_fov"))
+            msg = f"Read RIGHT_CAMERA - horizontal_fov: {self.right_camera_specs.fov}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'horizontal_fov' in section 'RIGHT_CAMERA': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.baseline_distance = float(config.get("SYSTEM_SETUP", "baseline_distance"))
-            self.logger.info(f"Read SYSTEM_SETUP - baseline_distance: {self.fov}.")
+            self.system_setup.baseline_distance = float(config.get("SYSTEM_SETUP", 
+                                                                   "baseline_distance"))
+            msg = f"Read SYSTEM_SETUP - baseline_distance: {self.system_setup.baseline_distance}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'baseline_distance' in section 'SYSTEM_SETUP': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.left_image_directory = str(config.get("CALIBRATION_LEFT", "image_directory"))
-            self.logger.info(f"Read CALIBRATION_LEFT - image_directory: {self.left_image_directory}.")
+            self.left_camera_calibration.image_directory = str(config.get("CALIBRATION_LEFT", 
+                                                                          "image_directory"))
+            msg = f"Read CALIBRATION_LEFT - image_directory: " +\
+                  f"{self.left_camera_calibration.image_directory}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'image_directory' in section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.left_chessboard_width = int(config.get("CALIBRATION_LEFT", "chessboard_width"))
-            self.logger.info(f"Read CALIBRATION_LEFT - chessboard_width: {self.left_chessboard_width}.")
+            self.left_camera_calibration.chessboard_width = int(config.get("CALIBRATION_LEFT", 
+                                                                           "chessboard_width"))
+            msg = f"Read CALIBRATION_LEFT - chessboard_width: " +\
+                  f"{self.left_camera_calibration.chessboard_width}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'chessboard_width' in section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.left_chessboard_height = int(config.get("CALIBRATION_LEFT", "chessboard_height"))
-            self.logger.info(f"Read CALIBRATION_LEFT - chessboard_height: {self.left_chessboard_height}.")
+            self.left_camera_calibration.chessboard_height = int(config.get("CALIBRATION_LEFT", 
+                                                                            "chessboard_height"))
+            msg = f"Read CALIBRATION_LEFT - chessboard_height: " +\
+                  f"{self.left_camera_calibration.chessboard_height}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'chessboard_height' in section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.left_square_size = int(config.get("CALIBRATION_LEFT", "chessboard_square_size"))
-            self.logger.info(f"Read CALIBRATION_LEFT - chessboard_square_size: {self.left_square_size}.")
+            self.left_camera_calibration.chessboard_square_size = int(config.get(
+                                                                        "CALIBRATION_LEFT",
+                                                                        "chessboard_square_size")
+                                                                     )
+            msg = f"Read CALIBRATION_LEFT - chessboard_square_size: " +\
+                  f"{self.left_camera_calibration.chessboard_square_size}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'chessboard_square_size' in section 'CALIBRATION_LEFT': {e}"
+            warning_msg = f"Could not find 'chessboard_square_size' in " +\
+                          f"section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.left_frame_width = int(config.get("CALIBRATION_LEFT", "frame_width"))
-            self.logger.info(f"Read CALIBRATION_LEFT - frame_width: {self.left_frame_width}.")
+            self.left_camera_calibration.frame_width = int(config.get("CALIBRATION_LEFT", 
+                                                                      "frame_width"))
+            msg = f"Read CALIBRATION_LEFT - frame_width: " +\
+                  f"{self.left_camera_calibration.frame_width}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'frame_width' in section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.left_frame_height = int(config.get("CALIBRATION_LEFT", "frame_height"))
-            self.logger.info(f"Read CALIBRATION_LEFT - frame_height: {self.left_frame_height}.")
+            self.left_camera_calibration.frame_height = int(config.get("CALIBRATION_LEFT", 
+                                                                       "frame_height"))
+            msg = f"Read CALIBRATION_LEFT - frame_height: " +\
+                  f"{self.left_camera_calibration.frame_height}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'frame_height' in section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
 
         try:
-            self.left_save_calibrated = bool(int(config.get("CALIBRATION_LEFT", "save_calibrated_image")))
-            self.logger.info(f"Read CALIBRATION_LEFT - save_calibrated_image: {self.left_save_calibrated}.")
+            self.left_camera_calibration.save_calibrated_image = bool(int(config.get(
+                                                                        "CALIBRATION_LEFT", 
+                                                                        "save_calibrated_image"))
+                                                                     )
+            msg = f"Read CALIBRATION_LEFT - save_calibrated_image: " +\
+                  f"{self.left_camera_calibration.save_calibrated_image}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'save_calibrated_image' in section 'CALIBRATION_LEFT': {e}"
+            warning_msg = f"Could not find 'save_calibrated_image' in " +\
+                          f"section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.left_params_directory = str(config.get("CALIBRATION_LEFT", "save_calibration_params_path"))
-            self.logger.info(f"Read CALIBRATION_LEFT - save_calibration_params_path: {self.left_params_directory}.")
+            self.left_camera_calibration.save_calibration_params_path = str(config.get(
+                                                                    "CALIBRATION_LEFT", 
+                                                                    "save_calibration_params_path")
+                                                                           )
+            msg = f"Read CALIBRATION_LEFT - save_calibration_params_path: " +\
+                  f"{self.left_camera_calibration.save_calibration_params_path}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'save_calibration_params_path' in section 'CALIBRATION_LEFT': {e}"
+            warning_msg = f"Could not find 'save_calibration_params_path' in " +\
+                          f"section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.right_image_directory = str(config.get("CALIBRATION_RIGHT", "image_directory"))
-            self.logger.info(f"Read CALIBRATION_RIGHT - image_directory: {self.right_image_directory}.")
+            self.right_camera_calibration.image_directory = str(config.get("CALIBRATION_RIGHT", 
+                                                                          "image_directory"))
+            msg = f"Read CALIBRATION_RIGHT - image_directory: " +\
+                  f"{self.right_camera_calibration.image_directory}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'image_directory' in section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.right_chessboard_width = int(config.get("CALIBRATION_RIGHT", "chessboard_width"))
-            self.logger.info(f"Read CALIBRATION_RIGHT - chessboard_width: {self.right_chessboard_width}.")
+            self.right_camera_calibration.chessboard_width = int(config.get("CALIBRATION_RIGHT", 
+                                                                           "chessboard_width"))
+            msg = f"Read CALIBRATION_RIGHT - chessboard_width: " +\
+                  f"{self.right_camera_calibration.chessboard_width}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'chessboard_width' in section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.right_chessboard_height = int(config.get("CALIBRATION_RIGHT", "chessboard_height"))
-            self.logger.info(f"Read CALIBRATION_RIGHT - chessboard_height: {self.right_chessboard_height}.")
+            self.right_camera_calibration.chessboard_height = int(config.get("CALIBRATION_RIGHT", 
+                                                                            "chessboard_height"))
+            msg = f"Read CALIBRATION_RIGHT - chessboard_height: " +\
+                  f"{self.right_camera_calibration.chessboard_height}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'chessboard_height' in section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.right_square_size = int(config.get("CALIBRATION_RIGHT", "chessboard_square_size"))
-            self.logger.info(f"Read CALIBRATION_RIGHT - chessboard_square_size: {self.right_square_size}.")
+            self.right_camera_calibration.chessboard_square_size = int(config.get(
+                                                                        "CALIBRATION_RIGHT",
+                                                                        "chessboard_square_size")
+                                                                     )
+            msg = f"Read CALIBRATION_RIGHT - chessboard_square_size: " +\
+                  f"{self.right_camera_calibration.chessboard_square_size}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'chessboard_square_size' in section 'CALIBRATION_RIGHT': {e}"
+            warning_msg = f"Could not find 'chessboard_square_size' in " +\
+                          f"section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.right_frame_width = int(config.get("CALIBRATION_RIGHT", "frame_width"))
-            self.logger.info(f"Read CALIBRATION_RIGHT - frame_width: {self.right_frame_width}.")
+            self.right_camera_calibration.frame_width = int(config.get("CALIBRATION_RIGHT", 
+                                                                      "frame_width"))
+            msg = f"Read CALIBRATION_RIGHT - frame_width: " +\
+                  f"{self.right_camera_calibration.frame_width}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'frame_width' in section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.right_frame_height = int(config.get("CALIBRATION_RIGHT", "frame_height"))
-            self.logger.info(f"Read CALIBRATION_RIGHT - frame_height: {self.right_frame_height}.")
+            self.right_camera_calibration.frame_height = int(config.get("CALIBRATION_RIGHT", 
+                                                                       "frame_height"))
+            msg = f"Read CALIBRATION_RIGHT - frame_height: " +\
+                  f"{self.right_camera_calibration.frame_height}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'frame_height' in section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
-        
+
         try:
-            self.right_save_calibrated = bool(int(config.get("CALIBRATION_RIGHT", "save_calibrated_image")))
-            self.logger.info(f"Read CALIBRATION_RIGHT - save_calibrated_image: {self.right_save_calibrated}.")
+            self.right_camera_calibration.save_calibrated_image = bool(int(config.get(
+                                                                        "CALIBRATION_RIGHT", 
+                                                                        "save_calibrated_image"))
+                                                                     )
+            msg = f"Read CALIBRATION_RIGHT - save_calibrated_image: " +\
+                  f"{self.right_camera_calibration.save_calibrated_image}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'save_calibrated_image' in section 'CALIBRATION_RIGHT': {e}"
+            warning_msg = f"Could not find 'save_calibrated_image' in " +\
+                          f"section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.right_params_directory = str(config.get("CALIBRATION_RIGHT", "save_calibration_params_path"))
-            self.logger.info(f"Read CALIBRATION_RIGHT - save_calibration_params_path: {self.right_params_directory}.")
+            self.right_camera_calibration.save_calibration_params_path = str(config.get(
+                                                                    "CALIBRATION_RIGHT", 
+                                                                    "save_calibration_params_path")
+                                                                           )
+            msg = f"Read CALIBRATION_RIGHT - save_calibration_params_path: " +\
+                  f"{self.right_camera_calibration.save_calibration_params_path}."
+            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'save_calibration_params_path' in section 'CALIBRATION_RIGHT': {e}"
+            warning_msg = f"Could not find 'save_calibration_params_path' in " +\
+                          f"section 'CALIBRATION_RIGHT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.parameters.video_calibration_step = int(config.get("PARAMETERS",
+                                                                    "video_calibration_step"))
+                                                                     
+            msg = f"Read PARAMETERS - video_calibration_step: " +\
+                  f"{self.parameters.video_calibration_step}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'video_calibration_step' in " +\
+                          f"section 'PARAMETERS': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.parameters.num_disparities = int(config.get("PARAMETERS", "num_disparities"))
+                                                                     
+            msg = f"Read PARAMETERS - num_disparities: {self.parameters.num_disparities}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'num_disparities' in section 'PARAMETERS': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.parameters.block_size = int(config.get("PARAMETERS", "block_size"))
+                                                                     
+            msg = f"Read PARAMETERS - block_size: {self.parameters.block_size}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'block_size' in section 'PARAMETERS': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.parameters.gaussian_kernel_size = int(config.get("PARAMETERS", 
+                                                                  "gaussian_kernel_size"))
+                                                                     
+            msg = f"Read PARAMETERS - gaussian_kernel_size: {self.parameters.gaussian_kernel_size}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'gaussian_kernel_size' in section 'PARAMETERS': {e}"
             self.logger.warning(warning_msg)
             res = False
 
