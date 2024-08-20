@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.navdataestimator import NavDataEstimator
-from src.utils.helpers import crop_roi, draw_horizontal_lines, draw_roi
+from src.utils.helpers import crop_roi, draw_horizontal_lines, draw_roi, draw_distance
 
 
 __author__ = "EnriqueMoran"
@@ -78,12 +78,19 @@ class MainApp:
     def run(self):
         self.test()
 
+        (781, 179), 767, 170
 
     def test(self):
         nav_data_estimator = NavDataEstimator(filename=self.log_filepath, 
                                               format=self.log_format, 
                                               level=self.log_level, 
                                               config_path=self.config_filepath)
+        
+        video_left  = Path("./modules/NavDataEstimator/calibration/left_camera.mp4")
+        video_right = Path("./modules/NavDataEstimator/calibration/right_camera.mp4")
+        
+        #nav_data_estimator.distance_calculator.calibrate_cameras_video(video_path_l=video_left,
+        #                                                               video_path_r=video_right)
         
         image_size = (1280, 720)
         
@@ -137,10 +144,28 @@ class MainApp:
         normalized_depth_map = crop_roi(normalized_depth_map, roi1)
 
         h, w = normalized_depth_map.shape[0], normalized_depth_map.shape[1]
-        cv2.imshow("Depth map", cv2.resize(normalized_depth_map, (w, h)))
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        #cv2.imshow("Depth map", cv2.resize(normalized_depth_map, (w, h)))
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
 
+        focal_length_l = nav_data_estimator.config_parser.left_camera_specs.focal_length
+        pixel_size_l   = nav_data_estimator.config_parser.left_camera_specs.pixel_size
+
+        focal_length_r = nav_data_estimator.config_parser.right_camera_specs.focal_length
+        pixel_size_r   = nav_data_estimator.config_parser.right_camera_specs.pixel_size
+        
+        baseline = nav_data_estimator.config_parser.system_setup.baseline_distance
+
+        distance_map_left = nav_data_estimator.distance_calculator.get_distance_map(depth_map,
+                                                                                    focal_length_l,
+                                                                                    pixel_size_l,
+                                                                                    baseline)
+        points = [(615, 161), (328, 147), (932, 256), (1144, 294), (173, 285), (509, 352),
+                  (554, 261), (650, 585), (1100, 520)]
+
+        draw_distance(image=test_img_l, 
+                      distance_map=distance_map_left,
+                      points=points)
 
 
 if __name__ == "__main__":

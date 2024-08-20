@@ -133,7 +133,6 @@ class Calibrator(BaseClass):
             if not ret:
                 break
 
-            # Procesa solo cada N-ésimo fotograma
             if frame_idx % step == 0:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 gray = cv2.resize(gray, (1280, 720))

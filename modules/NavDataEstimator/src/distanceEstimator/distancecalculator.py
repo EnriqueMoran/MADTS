@@ -28,11 +28,11 @@ class DistanceCalculator(BaseClass):
         super().__init__(filename, format, level)
         self.config_parser = ConfigManager(filename=filename, format=format, level=level, 
                                            config_path=config_path)
-        self.log_filepath     = filename
-        self.log_format       = format
-        self.log_level        = level
-        self.left_calibrator  = None
-        self.right_calibrator = None
+        self.log_filepath       = filename
+        self.log_format         = format
+        self.log_level          = level
+        self.left_calibrator    = None
+        self.right_calibrator   = None
         self._create_calibrators()
 
     
@@ -236,4 +236,19 @@ class DistanceCalculator(BaseClass):
         rectified_right = cv2.GaussianBlur(rectified_right, (5, 5), 0)
 
         return rectified_left, rectified_right, roi1, roi2
+    
+
+    def get_distance_map(self, depth_map, focal_length, pixel_size, baseline):
+        """
+        TBD
+        """
+        focal_length_pixels = (focal_length / pixel_size) * 1000
+
+        disparity_map = np.float32(depth_map)
+        disparity_map[disparity_map == 0] = 1e-6
+
+        distance_map = (focal_length_pixels * baseline) / disparity_map
+        return distance_map
+
+        
     

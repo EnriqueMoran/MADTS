@@ -79,9 +79,9 @@ class ConfigManager(BaseClass):
         res = True    # All configuration could be read succesfully
 
         try:
-            self.left_camera_specs.focal_lenght = float(config.get("LEFT_CAMERA_SPECS", 
+            self.left_camera_specs.focal_length = float(config.get("LEFT_CAMERA_SPECS", 
                                                                    "focal_length"))
-            msg = f"Read LEFT_CAMERA - focal_length: {self.left_camera_specs.focal_lenght}."
+            msg = f"Read LEFT_CAMERA - focal_length: {self.left_camera_specs.focal_length}."
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'focal_length' in section 'LEFT_CAMERA': {e}"
@@ -107,9 +107,9 @@ class ConfigManager(BaseClass):
             res = False
         
         try:
-            self.right_camera_specsfocal_lenght = int(config.get("RIGHT_CAMERA_SPECS", 
+            self.right_camera_specs.focal_length = int(config.get("RIGHT_CAMERA_SPECS", 
                                                                  "focal_length"))
-            msg = f"Read RIGHT_CAMERA - focal_length: {self.right_camera_specsfocal_lenght}."
+            msg = f"Read RIGHT_CAMERA - focal_length: {self.right_camera_specs.focal_length}."
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'focal_length' in section 'RIGHT_CAMERA': {e}"
