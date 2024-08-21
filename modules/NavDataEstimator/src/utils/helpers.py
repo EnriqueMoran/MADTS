@@ -51,7 +51,9 @@ def draw_distance(image, distance_map, points):
     Args:
        TBD
     """
-    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    # Check if the image is grayscale (single channel) or color (3 channels)
+    if len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
     for (x, y) in points:
         distance = distance_map[y, x]
@@ -67,6 +69,4 @@ def draw_distance(image, distance_map, points):
             cv2.putText(image, text, (x + 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
                          0.5, (0, 255, 0), 2)
     
-    cv2.imshow('Distance Map', image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    return image

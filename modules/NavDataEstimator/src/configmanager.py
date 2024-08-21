@@ -5,8 +5,8 @@ Implements configuration parser class.
 import configparser
 
 from pathlib import Path
-from src.baseclass import BaseClass
-from src.utils.structs import *
+from modules.NavDataEstimator.src.baseclass import BaseClass
+from modules.NavDataEstimator.src.utils.structs import *
 
 
 __author__ = "EnriqueMoran"
@@ -36,24 +36,22 @@ class ConfigManager(BaseClass):
             self.config_path = Path(config_path).resolve()
 
             ##### LEFT_CAMERA #####
-            self.left_camera_specs = CameraSpecs(None, None, None)
+            self.left_camera_specs = CameraSpecs()
             
             ##### RIGHT_CAMERA #####
-            self.right_camera_specs = CameraSpecs(None, None, None)
+            self.right_camera_specs = CameraSpecs()
 
             ##### SYSTEM_SETUP #####
-            self.system_setup = SystemSetup(None)
+            self.system_setup = SystemSetup()
 
             ##### CALIBRATION_LEFT #####
-            self.left_camera_calibration = CalibrationSpecs(None, None, None, None, 
-                                                            None, None, None, None)
+            self.left_camera_calibration = CalibrationSpecs()
             
             ##### CALIBRATION_RIGHT #####
-            self.right_camera_calibration = CalibrationSpecs(None, None, None, None, 
-                                                             None, None, None, None)
+            self.right_camera_calibration = CalibrationSpecs()
             
             ##### PARAMETERS #####
-            self.parameters = Parameters(None, None, None, None)
+            self.parameters = Parameters()
 
             self.read_config()
 
@@ -229,6 +227,20 @@ class ConfigManager(BaseClass):
             res = False
         
         try:
+            self.left_camera_calibration.save_calibration_images_path = str(config.get(
+                                                                    "CALIBRATION_LEFT", 
+                                                                    "save_calibration_images_path")
+                                                                           )
+            msg = f"Read CALIBRATION_LEFT - save_calibration_images_path: " +\
+                  f"{self.left_camera_calibration.save_calibration_images_path}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'save_calibration_images_path' in " +\
+                          f"section 'CALIBRATION_LEFT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
             self.left_camera_calibration.save_calibration_params_path = str(config.get(
                                                                     "CALIBRATION_LEFT", 
                                                                     "save_calibration_params_path")
@@ -238,6 +250,20 @@ class ConfigManager(BaseClass):
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'save_calibration_params_path' in " +\
+                          f"section 'CALIBRATION_LEFT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.left_camera_calibration.load_calibration_params_path = str(config.get(
+                                                                    "CALIBRATION_LEFT", 
+                                                                    "load_calibration_params_path")
+                                                                           )
+            msg = f"Read CALIBRATION_LEFT - load_calibration_params_path: " +\
+                  f"{self.left_camera_calibration.load_calibration_params_path}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'load_calibration_params_path' in " +\
                           f"section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
@@ -326,6 +352,20 @@ class ConfigManager(BaseClass):
             res = False
         
         try:
+            self.right_camera_calibration.save_calibration_images_path = str(config.get(
+                                                                    "CALIBRATION_RIGHT", 
+                                                                    "save_calibration_images_path")
+                                                                           )
+            msg = f"Read CALIBRATION_RIGHT - save_calibration_images_path: " +\
+                  f"{self.right_camera_calibration.save_calibration_images_path}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'save_calibration_images_path' in " +\
+                          f"section 'CALIBRATION_RIGHT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
             self.right_camera_calibration.save_calibration_params_path = str(config.get(
                                                                     "CALIBRATION_RIGHT", 
                                                                     "save_calibration_params_path")
@@ -335,6 +375,20 @@ class ConfigManager(BaseClass):
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'save_calibration_params_path' in " +\
+                          f"section 'CALIBRATION_RIGHT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.right_camera_calibration.load_calibration_params_path = str(config.get(
+                                                                    "CALIBRATION_RIGHT", 
+                                                                    "load_calibration_params_path")
+                                                                           )
+            msg = f"Read CALIBRATION_RIGHT - load_calibration_params_path: " +\
+                  f"{self.right_camera_calibration.load_calibration_params_path}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'load_calibration_params_path' in " +\
                           f"section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
@@ -378,6 +432,17 @@ class ConfigManager(BaseClass):
                                                                      
             msg = f"Read PARAMETERS - gaussian_kernel_size: {self.parameters.gaussian_kernel_size}."
             self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'gaussian_kernel_size' in section 'PARAMETERS': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            pixel_width  = int(config.get("PARAMETERS", "image_width"))
+            self.logger.info(f"Read PARAMETERS - pixel_width: {pixel_width}.")
+            pixel_height = int(config.get("PARAMETERS", "image_height"))
+            self.logger.info(f"Read PARAMETERS - pixel_height: {pixel_height}.")
+            self.parameters.resolution = (pixel_width, pixel_height)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'gaussian_kernel_size' in section 'PARAMETERS': {e}"
             self.logger.warning(warning_msg)

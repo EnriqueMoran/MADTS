@@ -2,9 +2,9 @@
 Implements main class.
 """
 
-from src.baseclass import BaseClass
-from src.configmanager import ConfigManager
-from src.distanceEstimator.distancecalculator import DistanceCalculator
+from modules.NavDataEstimator.src.baseclass import BaseClass
+from modules.NavDataEstimator.src.configmanager import ConfigManager
+from modules.NavDataEstimator.src.distanceEstimator.distancecalculator import DistanceCalculator
 
 
 __author__ = "EnriqueMoran"

@@ -12,7 +12,7 @@ import numpy as np
 import pickle
 
 from pathlib import Path
-from src.baseclass import BaseClass
+from modules.NavDataEstimator.src.baseclass import BaseClass
 
 
 __author__ = "EnriqueMoran"
@@ -31,16 +31,17 @@ class Calibrator(BaseClass):
 
     def __init__(self, filename:str, format:str, level:str,
                  image_dir:str, chessboard_width:int, chessboard_height:int, frame_width:int, 
-                 frame_height:int, square_size:int, save_calibrated:bool,
-                 params_path:str):
+                 frame_height:int, square_size:int, save_calibrated:bool, calibration_img_path:Path,
+                 param_file:Path):
         super().__init__(filename, format, level)
-        self.image_dir           = Path(image_dir).resolve()
-        self.chessboard_width    = chessboard_width
-        self.chessboard_height   = chessboard_height
-        self.square_size         = square_size
-        self.frame_size          = (frame_width, frame_height)
-        self.save_calibrated_img = save_calibrated
-        self.params_path         = Path(params_path).resolve()
+        self.image_dir              = Path(image_dir).resolve()
+        self.chessboard_width       = chessboard_width
+        self.chessboard_height      = chessboard_height
+        self.square_size            = square_size
+        self.frame_size             = (frame_width, frame_height)
+        self.save_calibrated_img    = save_calibrated
+        self.calibration_image_path = calibration_img_path
+        self.param_file             = param_file
         
         self._max_iterations      = 30
         self._threshold           = 0.001
@@ -55,7 +56,8 @@ class Calibrator(BaseClass):
         self.logger.info(f"Calibrating camera...")
         obj_points = np.zeros((self.chessboard_width  * self.chessboard_height, 3), np.float32)
         # Change from [(0, 0, 0), (0, 0, 0), ...] to [(1, 0, 0), (2, 0, 0), ...]
-        obj_points[:,:2] = np.mgrid[0:self.chessboard_width,0:self.chessboard_height].T.reshape(-1,2)
+        obj_points[:,:2] = np.mgrid[0:self.chessboard_width,0:self.chessboard_height].T.reshape(-1,
+                                                                                                2)
 
         obj_points = obj_points * self.square_size
 
@@ -82,7 +84,8 @@ class Calibrator(BaseClass):
 
             if ret:
                 obj_points_list.append(obj_points)
-                refined_corners = cv2.cornerSubPix(img, corners, (11,11), (-1,-1), self.termination_criteria)
+                refined_corners = cv2.cornerSubPix(img, corners, (11,11), (-1,-1),
+                                                   self.termination_criteria)
                 img_points_list.append(refined_corners)
 
                 if self.save_calibrated_img:
@@ -100,11 +103,11 @@ class Calibrator(BaseClass):
                                                                     img_points_list, 
                                                                     self.frame_size, None, None)
         
-        self.logger.info(f"RMS: {rms}.")
-        self.logger.info(f"Camera matrix: \n{camera_matrix}.")
-        self.logger.info(f"Distortion coeff: {dist}.")
-        self.logger.info(f"Rotation vectors: \n{rvecs}.")
-        self.logger.info(f"Translation vectors: \n{tvecs}.")
+        self.logger.debug(f"RMS: {rms}.")
+        self.logger.debug(f"Camera matrix: \n{camera_matrix}.")
+        self.logger.debug(f"Distortion coeff: {dist}.")
+        self.logger.debug(f"Rotation vectors: \n{rvecs}.")
+        self.logger.debug(f"Translation vectors: \n{tvecs}.")
 
         return rms, camera_matrix, dist, rvecs, tvecs, obj_points_list, img_points_list
     
@@ -128,6 +131,7 @@ class Calibrator(BaseClass):
             return None
 
         frame_idx = 0
+        frame_count = 1
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -140,18 +144,19 @@ class Calibrator(BaseClass):
                 ret, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
 
                 if ret:
-                    refined_corners = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), self.termination_criteria)
+                    refined_corners = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), 
+                                                       self.termination_criteria)
                     img_points_list.append(refined_corners)
                     obj_points_list.append(obj_points)
 
                     if self.save_calibrated_img:
-                        save_dir  = self.params_path / "calibrated"
-                        save_dir.mkdir(parents=True, exist_ok=True)
+                        self.calibration_image_path.mkdir(parents=True, exist_ok=True)
 
-                        save_path = save_dir / f"frame_{frame_idx}.jpg"
+                        save_path = self.calibration_image_path / f"image_{frame_count}.jpg"
                         cv2.drawChessboardCorners(frame, chessboard_size, refined_corners, ret)
                         cv2.imwrite(str(save_path), frame)
                         self.logger.info(f"Saved frame with calibration corners to {save_path}.")
+                        frame_count += 1
 
             frame_idx += 1
 
@@ -165,11 +170,11 @@ class Calibrator(BaseClass):
                                                                     img_points_list, 
                                                                     gray.shape[::-1], None, None)
         
-        self.logger.info(f"RMS: {rms}.")
-        self.logger.info(f"Camera matrix: \n{camera_matrix}.")
-        self.logger.info(f"Distortion coefficients: {dist}.")
-        self.logger.info(f"Rotation vectors: \n{rvecs}.")
-        self.logger.info(f"Translation vectors: \n{tvecs}.")
+        self.logger.debug(f"RMS: {rms}.")
+        self.logger.debug(f"Camera matrix: \n{camera_matrix}.")
+        self.logger.debug(f"Distortion coefficients: {dist}.")
+        self.logger.debug(f"Rotation vectors: \n{rvecs}.")
+        self.logger.debug(f"Translation vectors: \n{tvecs}.")
 
         return rms, camera_matrix, dist, rvecs, tvecs, obj_points_list, img_points_list
 
@@ -178,10 +183,10 @@ class Calibrator(BaseClass):
         """
         TBD
         """
-        self.params_path.mkdir(parents=True, exist_ok=True)
+        self.param_file.parent.mkdir(parents=True, exist_ok=True)
         pickle.dump((camera_matrix, dist, rvecs, tvecs, obj_points, img_points), 
-                    open(self.params_path / "calibration.pkl", "wb" ))
-        self.logger.info(f"Calibration params saved as: {self.params_path / 'calibration.pkl'}.")
+                    open(self.param_file, "wb" ))
+        self.logger.info(f"Calibration params saved as: {self.param_file}.")
 
 
     def undistort_image(self, camera_matrix, dist, img, method='undistort'):
@@ -206,14 +211,16 @@ class Calibrator(BaseClass):
             return dst
     
 
-    def get_reprojection_error(self, obj_points_list, img_points_list, rvecs, tvecs, dist, camera_matrix):
+    def get_reprojection_error(self, obj_points_list, img_points_list, rvecs, tvecs, dist, 
+                               camera_matrix):
         """
         TBD
         """
         mean_error = 0
 
         for i in range(len(obj_points_list)):
-            imgpoints2, _ = cv2.projectPoints(obj_points_list[i], rvecs[i], tvecs[i], camera_matrix, dist)
+            imgpoints2, _ = cv2.projectPoints(obj_points_list[i], rvecs[i], tvecs[i], camera_matrix, 
+                                              dist)
             error = cv2.norm(img_points_list[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
             mean_error += error
 

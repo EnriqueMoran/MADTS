@@ -2,6 +2,7 @@
 TBD
 """
 import argparse
+import concurrent.futures
 import cv2
 import numpy as np
 import os
@@ -78,7 +79,6 @@ class MainApp:
     def run(self):
         self.test()
 
-        (781, 179), 767, 170
 
     def test(self):
         nav_data_estimator = NavDataEstimator(filename=self.log_filepath, 
@@ -92,7 +92,7 @@ class MainApp:
         #nav_data_estimator.distance_calculator.calibrate_cameras_video(video_path_l=video_left,
         #                                                               video_path_r=video_right)
         
-        image_size = (1280, 720)
+        image_size = nav_data_estimator.config_parser.parameters.resolution
         
         test_img_l = cv2.imread("./modules/NavDataEstimator/test/left.jpg",  cv2.IMREAD_GRAYSCALE)
         test_img_r = cv2.imread("./modules/NavDataEstimator/test/right.jpg", cv2.IMREAD_GRAYSCALE)
@@ -108,10 +108,10 @@ class MainApp:
 
         rectified_images = nav_data_estimator.distance_calculator.get_rectified_images(
             image_left=test_img_l, 
-            image_right=test_img_r, 
+            image_right=test_img_r,
             obj_points_list_l=obj_points_list_l,
             img_points_list_l=img_points_list_l,
-            img_points_list_r=img_points_list_r, 
+            img_points_list_r=img_points_list_r,
             camera_matrix_l=camera_matrix_l, 
             dist_l=dist_l, 
             camera_matrix_r=camera_matrix_r, 
@@ -139,7 +139,7 @@ class MainApp:
                                                                           right_image=rectified_right,
                                                                           n_disparities=num_disparities,
                                                                           block_size=block_size)
-        
+
         normalized_depth_map = nav_data_estimator.distance_calculator.normalize_depth_map(depth_map)
         normalized_depth_map = crop_roi(normalized_depth_map, roi1)
 
@@ -151,21 +151,77 @@ class MainApp:
         focal_length_l = nav_data_estimator.config_parser.left_camera_specs.focal_length
         pixel_size_l   = nav_data_estimator.config_parser.left_camera_specs.pixel_size
 
-        focal_length_r = nav_data_estimator.config_parser.right_camera_specs.focal_length
-        pixel_size_r   = nav_data_estimator.config_parser.right_camera_specs.pixel_size
-        
         baseline = nav_data_estimator.config_parser.system_setup.baseline_distance
 
         distance_map_left = nav_data_estimator.distance_calculator.get_distance_map(depth_map,
                                                                                     focal_length_l,
                                                                                     pixel_size_l,
                                                                                     baseline)
-        points = [(615, 161), (328, 147), (932, 256), (1144, 294), (173, 285), (509, 352),
-                  (554, 261), (650, 585), (1100, 520)]
+        points = [(615, 161), (328, 147), (173, 285), (509, 352),
+                  (554, 261)]
 
-        draw_distance(image=test_img_l, 
-                      distance_map=distance_map_left,
-                      points=points)
+        #draw_distance(image=test_img_l, 
+        #              distance_map=distance_map_left,
+        #              points=points)
+
+        _, _, _, _, _, R, T, _, _ = cv2.stereoCalibrate(
+            obj_points_list_l, img_points_list_l, img_points_list_r,
+            camera_matrix_l, dist_l, camera_matrix_r, dist_r,
+            image_size, flags=cv2.CALIB_FIX_INTRINSIC
+        )
+
+        R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(
+            camera_matrix_l, dist_l, camera_matrix_r, dist_r,
+            image_size, R, T, alpha=1
+        )
+
+        map_left_x, map_left_y = cv2.initUndistortRectifyMap(
+            camera_matrix_l, dist_l, R1, P1, image_size, cv2.CV_32FC1
+        )
+
+        map_right_x, map_right_y = cv2.initUndistortRectifyMap(
+            camera_matrix_r, dist_r, R2, P2, image_size, cv2.CV_32FC1
+        )
+
+        precomputed_maps = {
+            'map_left_x': map_left_x,
+            'map_left_y': map_left_y,
+            'map_right_x': map_right_x,
+            'map_right_y': map_right_y
+        }
+
+        cap_left = cv2.VideoCapture(video_left)
+        cap_right = cv2.VideoCapture(video_right)
+
+        fps = cap_left.get(cv2.CAP_PROP_FPS)
+        delay = int(1000 / fps)
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            while cap_left.isOpened() and cap_right.isOpened():
+                ret_left, frame_left = cap_left.read()
+                ret_right, frame_right = cap_right.read()
+
+                if not ret_left or not ret_right:
+                    break
+
+                # Submit the frame processing to the thread pool
+                future = executor.submit(nav_data_estimator.distance_calculator.process_frame, 
+                                         frame_left, frame_right, nav_data_estimator, 
+                                         precomputed_maps, roi1, focal_length_l, pixel_size_l, baseline, points)
+
+                # Get the result
+                frame_with_distances = future.result()
+
+                # Display the processed frame in real-time
+                cv2.imshow('Real-Time Video with Distances', frame_with_distances)
+
+                # Exit if the user presses 'q'
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+        cap_left.release()
+        cap_right.release()
+        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

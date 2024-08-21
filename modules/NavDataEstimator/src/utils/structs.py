@@ -6,31 +6,34 @@ __author__ = "EnriqueMoran"
 
 @dataclass
 class CameraSpecs:
-    focal_length: float
-    pixel_size: float
-    fov: float
+    focal_length: float = None
+    pixel_size: float   = None
+    fov: float          = None
 
 
 @dataclass
 class SystemSetup:
-    baseline_distance: float
+    baseline_distance: float = None
 
 
 @dataclass
 class CalibrationSpecs:
-    image_directory: str
-    chessboard_width: int
-    chessboard_height: int
-    chessboard_square_size: int
-    frame_width: int
-    frame_height: int
-    save_calibrated_image: bool
-    save_calibration_params_path: str
+    image_directory: str              = None
+    chessboard_width: int             = None
+    chessboard_height: int            = None
+    chessboard_square_size: int       = None
+    frame_width: int                  = None
+    frame_height: int                 = None
+    save_calibrated_image: bool       = None
+    save_calibration_images_path: str = None
+    save_calibration_params_path: str = None
+    load_calibration_params_path: str = None
 
 
 @dataclass
 class Parameters:
-    video_calibration_step: int
-    num_disparities: int
-    block_size: int
-    gaussian_kernel_size: int
+    video_calibration_step: int = None
+    num_disparities: int        = None
+    block_size: int             = None
+    gaussian_kernel_size: int   = None
+    resolution: tuple[int, int] = None
