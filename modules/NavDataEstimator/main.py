@@ -7,12 +7,15 @@ import cv2
 import numpy as np
 import os
 import pickle
+import sys
 
 from datetime import datetime
 from pathlib import Path
 
-from src.navdataestimator import NavDataEstimator
-from src.utils.helpers import crop_roi, draw_horizontal_lines, draw_roi, draw_distance
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+
+from modules.NavDataEstimator.src.navdataestimator import NavDataEstimator
+from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_horizontal_lines, draw_roi, draw_distance
 
 
 __author__ = "EnriqueMoran"
@@ -86,24 +89,43 @@ class MainApp:
                                               level=self.log_level, 
                                               config_path=self.config_filepath)
         
-        video_left  = Path("./modules/NavDataEstimator/calibration/left_camera.mp4")
-        video_right = Path("./modules/NavDataEstimator/calibration/right_camera.mp4")
+        video_left  = Path("./modules/NavDataEstimator/calibration/videos/left_camera.mp4")
+        video_right = Path("./modules/NavDataEstimator/calibration/videos/right_camera.mp4")
         
         #nav_data_estimator.distance_calculator.calibrate_cameras_video(video_path_l=video_left,
         #                                                               video_path_r=video_right)
         
         image_size = nav_data_estimator.config_parser.parameters.resolution
+
+        cap_left = cv2.VideoCapture(video_left)
+        cap_right = cv2.VideoCapture(video_right)
+
+        ret_l, frame_left = cap_left.read()
+        ret_r, frame_right = cap_right.read()
+
+        if not ret_l or not ret_r:
+            print("Error capturing frames from video.")
+            return
+
+        cap_left.release()
+        cap_right.release()
+
+        frame_left = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
+        frame_right = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)
+
+        test_img_l = cv2.resize(frame_left, image_size)
+        test_img_r = cv2.resize(frame_right, image_size)
         
-        test_img_l = cv2.imread("./modules/NavDataEstimator/test/left.jpg",  cv2.IMREAD_GRAYSCALE)
-        test_img_r = cv2.imread("./modules/NavDataEstimator/test/right.jpg", cv2.IMREAD_GRAYSCALE)
+        # test_img_l = cv2.imread("./modules/NavDataEstimator/test/left.jpg",  cv2.IMREAD_GRAYSCALE)
+        # test_img_r = cv2.imread("./modules/NavDataEstimator/test/right.jpg", cv2.IMREAD_GRAYSCALE)
 
-        test_img_l = cv2.resize(test_img_l, image_size)
-        test_img_r = cv2.resize(test_img_r, image_size)
+        #test_img_l = cv2.resize(test_img_l, image_size)
+        #test_img_r = cv2.resize(test_img_r, image_size)
 
-        with open("./modules/NavDataEstimator/calibration/params/left/calibration.pkl", 'rb') as file:
+        with open("./modules/NavDataEstimator/calibration/params/calibration_left.pkl", 'rb') as file:
             camera_matrix_l, dist_l, _, _, obj_points_list_l, img_points_list_l = pickle.load(file)
         
-        with open("./modules/NavDataEstimator/calibration/params/right/calibration.pkl", 'rb') as file:
+        with open("./modules/NavDataEstimator/calibration/params/calibration_right.pkl", 'rb') as file:
             camera_matrix_r, dist_r, _, _, _, img_points_list_r = pickle.load(file)
 
         rectified_images = nav_data_estimator.distance_calculator.get_rectified_images(
@@ -157,8 +179,15 @@ class MainApp:
                                                                                     focal_length_l,
                                                                                     pixel_size_l,
                                                                                     baseline)
-        points = [(615, 161), (328, 147), (173, 285), (509, 352),
-                  (554, 261)]
+        #points = [(615, 161), (328, 147), (173, 285), (509, 352), (554, 261)]
+
+        margin = 50  
+        step = 100
+        image_width, image_height = nav_data_estimator.config_parser.parameters.resolution
+        x_points = np.arange(margin, image_width - margin, step)
+        y_points = np.arange(margin, image_height - margin, step)
+
+        points = [(int(x), int(y)) for x in x_points for y in y_points]
 
         #draw_distance(image=test_img_l, 
         #              distance_map=distance_map_left,
@@ -239,7 +268,7 @@ if __name__ == "__main__":
                         type=bool,
                         help="If enabled, won't clear logs files on new run.")
 
-    args = parser.parse_args()
+    args = parser.parse_args([])
 
     log_filepath   = f"./modules/NavDataEstimator/logs/{datetime.now().strftime('%Y%m%d')}.log"
     log_format     = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'

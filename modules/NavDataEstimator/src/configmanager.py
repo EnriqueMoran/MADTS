@@ -213,15 +213,15 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.left_camera_calibration.save_calibrated_image = bool(int(config.get(
+            self.left_camera_calibration.save_calibration_images = bool(int(config.get(
                                                                         "CALIBRATION_LEFT", 
-                                                                        "save_calibrated_image"))
+                                                                        "save_calibration_images"))
                                                                      )
-            msg = f"Read CALIBRATION_LEFT - save_calibrated_image: " +\
-                  f"{self.left_camera_calibration.save_calibrated_image}."
+            msg = f"Read CALIBRATION_LEFT - save_calibration_images: " +\
+                  f"{self.left_camera_calibration.save_calibration_images}."
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'save_calibrated_image' in " +\
+            warning_msg = f"Could not find 'save_calibration_images' in " +\
                           f"section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
@@ -236,6 +236,20 @@ class ConfigManager(BaseClass):
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'save_calibration_images_path' in " +\
+                          f"section 'CALIBRATION_LEFT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.left_camera_calibration.save_calibration_params = bool(int(config.get(
+                                                                        "CALIBRATION_LEFT", 
+                                                                        "save_calibration_params"))
+                                                                     )
+            msg = f"Read CALIBRATION_LEFT - save_calibration_params: " +\
+                  f"{self.left_camera_calibration.save_calibration_params}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'save_calibration_params' in " +\
                           f"section 'CALIBRATION_LEFT': {e}"
             self.logger.warning(warning_msg)
             res = False
@@ -338,15 +352,15 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.right_camera_calibration.save_calibrated_image = bool(int(config.get(
+            self.right_camera_calibration.save_calibration_images = bool(int(config.get(
                                                                         "CALIBRATION_RIGHT", 
-                                                                        "save_calibrated_image"))
+                                                                        "save_calibration_images"))
                                                                      )
-            msg = f"Read CALIBRATION_RIGHT - save_calibrated_image: " +\
-                  f"{self.right_camera_calibration.save_calibrated_image}."
+            msg = f"Read CALIBRATION_RIGHT - save_calibration_images: " +\
+                  f"{self.right_camera_calibration.save_calibration_images}."
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'save_calibrated_image' in " +\
+            warning_msg = f"Could not find 'save_calibration_images' in " +\
                           f"section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
@@ -361,6 +375,20 @@ class ConfigManager(BaseClass):
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'save_calibration_images_path' in " +\
+                          f"section 'CALIBRATION_RIGHT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.right_camera_calibration.save_calibration_params = bool(int(config.get(
+                                                                        "CALIBRATION_RIGHT", 
+                                                                        "save_calibration_params"))
+                                                                     )
+            msg = f"Read CALIBRATION_RIGHT - save_calibration_params: " +\
+                  f"{self.right_camera_calibration.save_calibration_params}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'save_calibration_params' in " +\
                           f"section 'CALIBRATION_RIGHT': {e}"
             self.logger.warning(warning_msg)
             res = False
@@ -445,6 +473,15 @@ class ConfigManager(BaseClass):
             self.parameters.resolution = (pixel_width, pixel_height)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'gaussian_kernel_size' in section 'PARAMETERS': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.parameters.alpha = float(config.get("PARAMETERS", "rectify_alpha"))                                              
+            msg = f"Read PARAMETERS - rectify_alpha: {self.parameters.alpha}."
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'rectify_alpha' in section 'PARAMETERS': {e}"
             self.logger.warning(warning_msg)
             res = False
 

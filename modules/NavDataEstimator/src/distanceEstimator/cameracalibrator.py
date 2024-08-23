@@ -32,7 +32,7 @@ class Calibrator(BaseClass):
     def __init__(self, filename:str, format:str, level:str,
                  image_dir:str, chessboard_width:int, chessboard_height:int, frame_width:int, 
                  frame_height:int, square_size:int, save_calibrated:bool, calibration_img_path:Path,
-                 param_file:Path):
+                 load_param_file:Path, save_param_file:Path):
         super().__init__(filename, format, level)
         self.image_dir              = Path(image_dir).resolve()
         self.chessboard_width       = chessboard_width
@@ -41,7 +41,8 @@ class Calibrator(BaseClass):
         self.frame_size             = (frame_width, frame_height)
         self.save_calibrated_img    = save_calibrated
         self.calibration_image_path = calibration_img_path
-        self.param_file             = param_file
+        self.load_param_file        = load_param_file
+        self.save_param_file        = save_param_file
         
         self._max_iterations      = 30
         self._threshold           = 0.001

@@ -70,3 +70,22 @@ def draw_distance(image, distance_map, points):
                          0.5, (0, 255, 0), 2)
     
     return image
+
+
+def draw_depth_map(img, depth_map):
+    """
+    Return depth map over given image.
+    """
+    height, width = depth_map.shape[:2]
+    img = cv2.resize(img, (width, height))
+
+    # If the image is in grayscale, convert it to BGR
+    if len(img.shape) == 2:  # Grayscale image
+        img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    else:
+        img_color = img
+
+    alpha = 0.6  # Transparency factor for the left image
+    beta = 1.0 - alpha  # Transparency factor for the depth map
+    combined_image = cv2.addWeighted(img_color, alpha, depth_map, beta, 0)
+    return combined_image

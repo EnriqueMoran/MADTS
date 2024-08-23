@@ -24,16 +24,19 @@ class CalibrationSpecs:
     chessboard_square_size: int       = None
     frame_width: int                  = None
     frame_height: int                 = None
-    save_calibrated_image: bool       = None
+    save_calibration_images: bool     = None
     save_calibration_images_path: str = None
+    save_calibration_params: bool     = None
     save_calibration_params_path: str = None
     load_calibration_params_path: str = None
 
 
 @dataclass
 class Parameters:
+    save_calibrated_image: bool       = None
     video_calibration_step: int = None
     num_disparities: int        = None
     block_size: int             = None
     gaussian_kernel_size: int   = None
     resolution: tuple[int, int] = None
+    alpha: float                = None
