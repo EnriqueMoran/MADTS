@@ -6,6 +6,7 @@ import configparser
 
 from pathlib import Path
 from modules.NavDataEstimator.src.baseclass import BaseClass
+from modules.NavDataEstimator.src.utils.enums import UndistortMethod
 from modules.NavDataEstimator.src.utils.structs import *
 
 
@@ -482,6 +483,26 @@ class ConfigManager(BaseClass):
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'rectify_alpha' in section 'PARAMETERS': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            value = int(config.get("PARAMETERS", "undistort_method"))
+                                                          
+            msg = f"Read PARAMETERS - undistort_method: {value}."
+            self.logger.info(msg)
+
+            valid_values = UndistortMethod._value2member_map_
+            if value not in valid_values:
+                warning_msg = f"Value not valid, accepted values': {valid_values}."
+                self.logger.warning(warning_msg)
+
+                value = 1
+                warning_msg = f"Setting value as {value}."
+                self.logger.warning(warning_msg)
+            self.parameters.undistort_method = UndistortMethod(value)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'undistort_method' in section 'PARAMETERS': {e}"
             self.logger.warning(warning_msg)
             res = False
 

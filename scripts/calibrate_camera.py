@@ -140,8 +140,8 @@ class MainApp:
             return
         
         print(f"Cameras calibrated. \nParameters saved as " +\
-              f"{nav_data_estimator.distance_calculator.left_calibrator.param_file} and " +\
-              f"{nav_data_estimator.distance_calculator.right_calibrator.param_file}")
+              f"{nav_data_estimator.distance_calculator.left_calibrator.save_param_file} and " +\
+              f"{nav_data_estimator.distance_calculator.right_calibrator.save_param_file}")
         
         return
 
@@ -171,8 +171,8 @@ if __name__ == "__main__":
 
     #args = parser.parse_args()
 
-    args = parser.parse_args(['--video_l', './modules/NavDataEstimator/calibration/videos/left_camera.mp4',
-                              '--video_r', './modules/NavDataEstimator/calibration/videos/right_camera.mp4',
+    args = parser.parse_args(['--video_l', './modules/NavDataEstimator/calibration/videos/20240822/calibration_3_left.mp4',
+                              '--video_r', './modules/NavDataEstimator/calibration/videos/20240822/calibration_3_right.mp4',
                               '--level', 'DEBUG',
                               '--log', './modules/NavDataEstimator/logs/20240823.log'])
 

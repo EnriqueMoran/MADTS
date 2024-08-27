@@ -7,6 +7,8 @@ import numpy as np
 import os
 
 from pathlib import Path
+from tqdm import tqdm
+
 from modules.NavDataEstimator.src.baseclass import BaseClass
 from modules.NavDataEstimator.src.configmanager import ConfigManager
 from modules.NavDataEstimator.src.distanceEstimator.cameracalibrator import Calibrator
@@ -44,43 +46,35 @@ class DistanceCalculator(BaseClass):
         """
         self.logger.info(f"Creating camera calibrators...")
 
-        img_dir_left        = Path(self.config_parser.left_camera_calibration.image_directory).resolve()
-        chessboard_width_l  = self.config_parser.left_camera_calibration.chessboard_width
-        chessboard_height_l = self.config_parser.left_camera_calibration.chessboard_height
-        frame_width_l       = self.config_parser.left_camera_calibration.frame_width
-        frame_height_l      = self.config_parser.left_camera_calibration.frame_height
-        square_size_l       = self.config_parser.left_camera_calibration.chessboard_square_size
-        save_calibrated_l   = self.config_parser.left_camera_calibration.save_calibration_images
-        calibration_img_l   = Path(self.config_parser.left_camera_calibration.save_calibration_images_path).resolve()
-        save_params_file_l  = Path(self.config_parser.left_camera_calibration.save_calibration_params_path).resolve()
-        load_params_file_l  = Path(self.config_parser.left_camera_calibration.load_calibration_params_path).resolve()
+        left_calibration  = self.config_parser.left_camera_calibration
+        right_calibration = self.config_parser.right_camera_calibration
 
-        img_dir_right       = Path(self.config_parser.right_camera_calibration.image_directory).resolve()
-        chessboard_width_r  = self.config_parser.right_camera_calibration.chessboard_width
-        chessboard_height_r = self.config_parser.right_camera_calibration.chessboard_height
-        frame_width_r       = self.config_parser.right_camera_calibration.frame_width
-        frame_height_r      = self.config_parser.right_camera_calibration.frame_height
-        square_size_r       = self.config_parser.right_camera_calibration.chessboard_square_size
-        save_calibrated_r   = self.config_parser.right_camera_calibration.save_calibration_images
-        calibration_img_r   = Path(self.config_parser.right_camera_calibration.save_calibration_images_path).resolve()
-        save_params_file_r  = Path(self.config_parser.right_camera_calibration.save_calibration_params_path).resolve()
-        load_params_file_r  = Path(self.config_parser.right_camera_calibration.load_calibration_params_path).resolve()
+        img_dir_left           = Path(left_calibration.image_directory).resolve()
+        chessboard_width_l     = left_calibration.chessboard_width
+        chessboard_height_l    = left_calibration.chessboard_height
+        frame_width_l          = left_calibration.frame_width
+        frame_height_l         = left_calibration.frame_height
+        square_size_l          = left_calibration.chessboard_square_size
+        save_calibrated_imgs_l = left_calibration.save_calibration_images
+        save_calibrated_path_l = Path(left_calibration.save_calibration_images_path).resolve()
+        save_params_file_l     = Path(left_calibration.save_calibration_params_path).resolve()
+        load_params_file_l     = Path(left_calibration.load_calibration_params_path).resolve()
 
-        if not os.path.exists(img_dir_left):
-            msg = f"Image directory for left camera: {img_dir_left} not found!"
-            self.logger.warning(msg)
-        if not os.path.exists(Path(save_params_file_l).parent):
-            msg = f"Parameters file for left camera: {Path(save_params_file_l).parent} not found!"
-            self.logger.warning(msg)
-        
-        if not os.path.exists(img_dir_right):
-            msg = f"Image directory for right camera: {img_dir_right} not found!"
-            self.logger.warning(msg)
-        if not os.path.exists(Path(save_params_file_r).parent):
-            msg = f"Parameters file for right camera: {Path(save_params_file_r).parent} not found!"
-            self.logger.warning(msg)
-        
-        self.left_calibrator = Calibrator(filename=self.log_filepath, 
+        img_dir_right          = Path(right_calibration.image_directory).resolve()
+        chessboard_width_r     = right_calibration.chessboard_width
+        chessboard_height_r    = right_calibration.chessboard_height
+        frame_width_r          = right_calibration.frame_width
+        frame_height_r         = right_calibration.frame_height
+        square_size_r          = right_calibration.chessboard_square_size
+        save_calibrated_imgs_r = right_calibration.save_calibration_images
+        save_calibrated_path_r = Path(right_calibration.save_calibration_images_path).resolve()
+        save_params_file_r     = Path(right_calibration.save_calibration_params_path).resolve()
+        load_params_file_r     = Path(right_calibration.load_calibration_params_path).resolve()
+
+        alpha = self.config_parser.parameters.alpha
+        undistort_method = self.config_parser.parameters.undistort_method
+
+        self.left_calibrator = Calibrator(filename=self.log_filepath,
                                           format=self.log_format,
                                           level=self.log_level,
                                           image_dir=img_dir_left,
@@ -89,10 +83,12 @@ class DistanceCalculator(BaseClass):
                                           frame_width=frame_width_l,
                                           frame_height=frame_height_l,
                                           square_size=square_size_l,
-                                          save_calibrated=save_calibrated_l,
-                                          calibration_img_path=calibration_img_l,
+                                          save_calibrated=save_calibrated_imgs_l,
+                                          save_calibrated_path=save_calibrated_path_l,
                                           save_param_file=save_params_file_l,
-                                          load_param_file=load_params_file_l)
+                                          load_param_file=load_params_file_l,
+                                          alpha=alpha,
+                                          undistort_method=undistort_method)
         self.logger.info(f"Left camera calibrator created.")
         
         self.right_calibrator = Calibrator(filename=self.log_filepath, 
@@ -104,18 +100,20 @@ class DistanceCalculator(BaseClass):
                                            frame_width=frame_width_r,
                                            frame_height=frame_height_r, 
                                            square_size=square_size_r,
-                                           save_calibrated=save_calibrated_r,
-                                           calibration_img_path=calibration_img_r,
+                                           save_calibrated=save_calibrated_imgs_r,
+                                           save_calibrated_path=save_calibrated_path_r,
                                            save_param_file=save_params_file_r,
-                                           load_param_file=load_params_file_r)
+                                           load_param_file=load_params_file_r,
+                                           alpha=alpha,
+                                           undistort_method=undistort_method)
         self.logger.info(f"Right camera calibrator created.")
     
 
-    def calibrate_cameras(self, save_calibrations=True):
+    def calibrate_cameras_images(self, save_calibrations=True):
         """
         TBD
         """
-        self.logger.info(f"Calibrating left camera...")
+        self.logger.info(f"Calibrating left camera using images...")
         _, camera_matrix_l, dist_l, rvecs_l, tvecs_l, obj_points_list_l, img_points_list_l = self.left_calibrator.calibrate_camera()
 
         repr_error_l = self.left_calibrator.get_reprojection_error(obj_points_list_l,
@@ -132,7 +130,7 @@ class DistanceCalculator(BaseClass):
                                                   obj_points=obj_points_list_l,
                                                   img_points=img_points_list_l)
         
-        self.logger.info(f"Calibrating right camera...")
+        self.logger.info(f"Calibrating right camera using images...")
         res_r = self.right_calibrator.calibrate_camera()
         _, camera_matrix_r, dist_r, rvecs_r, tvecs_r, obj_points_list_r, img_points_list_r = res_r
 
@@ -151,11 +149,12 @@ class DistanceCalculator(BaseClass):
                                                   img_points=img_points_list_l)
     
 
-    def calibrate_cameras_video(self, video_path_l, video_path_r, save_calibrations=True, step=30):
+    def calibrate_cameras_video2(self, video_path_l, video_path_r, save_calibrations=True):
         """
         TBD
         """
-        self.logger.info(f"Calibrating left camera...")
+        step = self.config_parser.parameters.video_calibration_step
+        self.logger.info(f"Calibrating left camera using video...")
         res_l = self.left_calibrator.calibrate_camera_video(video_path=video_path_l, step=step)
         _, camera_matrix_l, dist_l, rvecs_l, tvecs_l, obj_points_list_l, img_points_list_l = res_l
 
@@ -165,7 +164,7 @@ class DistanceCalculator(BaseClass):
                                                                    camera_matrix_l)
         self.logger.info(f"Left camera calibrated, reprojection error: {repr_error_l:.16f}")
 
-        self.logger.info(f"Calibrating right camera...")
+        self.logger.info(f"Calibrating right camera using video...")
         res_r = self.right_calibrator.calibrate_camera_video(video_path=video_path_r, step=step)
         _, camera_matrix_r, dist_r, rvecs_r, tvecs_r, obj_points_list_r, img_points_list_r = res_r
 
@@ -216,8 +215,108 @@ class DistanceCalculator(BaseClass):
             'img_points_list_r': img_points_list_r,
         }
             
-        return res 
+        return res
     
+
+    def _get_synchronized_frames(self, video_path_left: Path, video_path_right: Path, 
+                                 step: int = 30):
+        """
+        Extract synchronized frames from two stereo videos with a given step.
+        """
+        cap_left = cv2.VideoCapture(str(video_path_left))
+        cap_right = cv2.VideoCapture(str(video_path_right))
+
+        if not cap_left.isOpened():
+            self.logger.error(f"Failed to open video file: {video_path_left}")
+            return None
+
+        if not cap_right.isOpened():
+            self.logger.error(f"Failed to open video file: {video_path_right}")
+            return None
+        
+        total_frames_left  = int(cap_left.get(cv2.CAP_PROP_FRAME_COUNT))
+        total_frames_right = int(cap_right.get(cv2.CAP_PROP_FRAME_COUNT))
+        total_frames       = min(total_frames_left, total_frames_right)
+        
+        frame_idx = 0
+        frames_left = []
+        frames_right = []
+
+        with tqdm(total=total_frames // step, desc="Extracting synchronized frames") as pbar:
+            while cap_left.isOpened() and cap_right.isOpened():
+                ret_left, frame_left = cap_left.read()
+                ret_right, frame_right = cap_right.read()
+
+                if not ret_left or not ret_right:
+                    break
+
+                if frame_idx % step == 0:
+                    gray_left = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
+                    gray_right = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)
+
+                    frames_left.append(gray_left)
+                    frames_right.append(gray_right)
+                    pbar.update(1)
+                    
+                frame_idx += 1
+                
+                if frame_idx >= total_frames:    # Stop if any video reaches the end
+                    break
+
+        cap_left.release()
+        cap_right.release()
+        return frames_left, frames_right
+
+
+    def calibrate_cameras_video(self, video_path_l, video_path_r):
+        """
+        TBD
+        """
+        self.logger.info(f"Calibrating both cameras using video...")
+        frames_left, frames_right = self._get_synchronized_frames(
+            video_path_l, video_path_r, self.config_parser.parameters.video_calibration_step
+            )
+
+        left_pts, right_pts = [], []
+        img_size = None
+
+        chessboard_size = (self.left_calibrator.chessboard_width, 
+                           self.left_calibrator.chessboard_height)
+         # TODO Remove left, right chessboard size (it must be shared)
+
+        max_iterations = 30       # Same value as used in documentation
+        threshold      = 0.001    # Same value as used in documentation
+        termination_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 
+                                max_iterations, threshold)
+
+        frame_pairs = zip(frames_left, frames_right)
+        frame_pairs = tqdm(frame_pairs, total=len(frames_left), desc="Processing frames")
+        for left_img, right_img in frame_pairs:
+            if img_size is None:
+                img_size = (left_img.shape[1], left_img.shape[0])
+            res_left, corners_left   = cv2.findChessboardCorners(left_img, chessboard_size)
+            res_right, corners_right = cv2.findChessboardCorners(right_img, chessboard_size)
+
+            if res_left and res_right:
+                corners_left = cv2.cornerSubPix(left_img, corners_left, (10, 10), (-1,-1),
+                                                termination_criteria)
+                corners_right = cv2.cornerSubPix(right_img, corners_right, (10, 10), (-1,-1), 
+                                                termination_criteria)
+
+                left_pts.append(corners_left)
+                right_pts.append(corners_right)
+
+        pattern_points = np.zeros((np.prod(chessboard_size), 3), np.float32)
+        pattern_points[:, :2] = np.indices(chessboard_size).T.reshape(-1, 2)
+        pattern_points = [pattern_points] * len(left_pts)
+
+        self.logger.info(f"Calling stereoCallibrate with {len(left_pts)} points...")
+        err, Kl, Dl, Kr, Dr, R, T, E, F = cv2.stereoCalibrate(
+            pattern_points, left_pts, right_pts, None, None, None, None, img_size, flags=0
+        )
+        self.logger.info(f"Cameras calibrated!")
+        return err, Kl, Dl, Kr, Dr, R, T, E, F
+
 
     def get_depth_map(self, left_image:np.ndarray, right_image:np.ndarray, n_disparities:int=0, 
                       block_size:int=21):

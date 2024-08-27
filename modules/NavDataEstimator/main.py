@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from modules.NavDataEstimator.src.navdataestimator import NavDataEstimator
-from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_horizontal_lines, draw_roi, draw_distance
+from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_horizontal_lines, draw_roi, draw_distance, draw_depth_map
 
 
 __author__ = "EnriqueMoran"
@@ -80,7 +80,138 @@ class MainApp:
 
 
     def run(self):
-        self.test()
+        self.test2()
+    
+
+    def test2(self):
+        nav_data_estimator = NavDataEstimator(filename=self.log_filepath, 
+                                              format=self.log_format, 
+                                              level=self.log_level, 
+                                              config_path=self.config_filepath)
+        left_calibrator  = nav_data_estimator.distance_calculator.left_calibrator
+        right_calibrator = nav_data_estimator.distance_calculator.right_calibrator
+
+        video_left  = Path("./modules/NavDataEstimator/calibration/videos/20240822/calibration_1_left.mp4")
+        video_right = Path("./modules/NavDataEstimator/calibration/videos/20240822/calibration_1_right.mp4")
+
+        # Error, left camera matrix, left camera distortion, right camera matrix, right camera distortion
+        # Rotation matrix, Translation matrix, Essential matrix, Fundamental matrix
+        #err, Kl, Dl, Kr, Dr, R, T, E, F = nav_data_estimator.distance_calculator.calibrate_cameras_video(video_left, video_right)
+        #print(f"Reprojection error: {err}")
+        #pickle.dump((Kl, Dl, Kr, Dr, R, T, E, F), open("test.pkl", "wb" ))
+
+        with open("test.pkl", 'rb') as file:
+            Kl, Dl, Kr, Dr, R, T, E, F = pickle.load(file)
+
+        test_size = (800, 600)
+
+        img_l = cv2.imread("./modules/NavDataEstimator/test/video_1_1_test_left.png",  cv2.IMREAD_GRAYSCALE)
+        img_r = cv2.imread("./modules/NavDataEstimator/test/video_1_1_test_right.png", cv2.IMREAD_GRAYSCALE)
+
+        undistorted_l = left_calibrator.undistort_image(Kl, Dl, img_l)
+        undistorted_r = right_calibrator.undistort_image(Kr, Dr, img_r)
+
+        opt_cam_mat_l, valid_roi = cv2.getOptimalNewCameraMatrix(Kl, Dl, img_l.shape[:2][::-1], 0)
+        undistorted_l = cv2.undistort(img_l, Kl, Dl, None, opt_cam_mat_l)
+
+        opt_cam_mat_r, valid_roi = cv2.getOptimalNewCameraMatrix(Kr, Dr, img_r.shape[:2][::-1], 0)
+        undistorted_r = cv2.undistort(img_r, Kr, Dr, None, opt_cam_mat_r)
+
+        R1, R2, P1, P2, Q, validRoi1, validRoi2 = cv2.stereoRectify(Kl, Dl, Kr, Dr, img_l.shape[:2][::-1], R, T)
+        xmap1, ymap1 = cv2.initUndistortRectifyMap(Kl, Dl, R1, P1, img_l.shape[:2][::-1], cv2.CV_32FC1)
+        xmap2, ymap2 = cv2.initUndistortRectifyMap(Kr, Dr, R2, P2, img_l.shape[:2][::-1], cv2.CV_32FC1)
+
+        left_img_rectified = cv2.remap(img_l, xmap1, ymap1, cv2.INTER_LINEAR)
+        right_img_rectified = cv2.remap(img_r, xmap2, ymap2, cv2.INTER_LINEAR)
+
+        #combined_image = cv2.hconcat([cv2.resize(left_img_rectified, test_size), cv2.resize(right_img_rectified, test_size)])
+        #cv2.imshow('Original images', combined_image)
+        #cv2.waitKey(0)
+
+        #undistorted_l = cv2.resize(undistorted_l, test_size)
+        #undistorted_r = cv2.resize(undistorted_r, test_size)
+
+        #depth_map  = nav_data_estimator.distance_calculator.get_depth_map(left_image=left_img_rectified,
+        #                                                                  right_image=right_img_rectified,
+        #                                                                  n_disparities=0,
+        #                                                                  block_size=15)
+        #normalized_depth_map = nav_data_estimator.distance_calculator.normalize_depth_map(depth_map)
+
+        #undistorted_l = cv2.resize(undistorted_l, test_size)
+        #normalized_depth_map     = cv2.resize(normalized_depth_map, test_size)
+        #draw_map = draw_depth_map(undistorted_l, normalized_depth_map)
+
+        n_disp = 16
+        block_size = 15
+        max_disp = 128
+
+        stereo_bm = cv2.StereoBM_create(n_disp, block_size)
+        dispmap_bm = stereo_bm.compute(left_img_rectified, right_img_rectified)
+
+        stereo_sgbm = cv2.StereoSGBM_create(0, max_disp, block_size)
+        dispmap_sgbm = stereo_sgbm.compute(left_img_rectified, right_img_rectified)
+
+        dispmap_bm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_bm)
+
+        dispmap_sgbm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_sgbm)
+
+        #dispmap_bm = crop_roi(dispmap_bm, validRoi1)
+        #dispmap_sgbm = crop_roi(dispmap_sgbm, validRoi1)
+        #img_l = crop_roi(img_l, validRoi1)
+
+        #angle = -3
+        #center = (dispmap_bm.shape[1] // 2, dispmap_bm.shape[0] // 2)
+        #rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+        #rotated_dispmap = cv2.warpAffine(dispmap_bm, rotation_matrix, (dispmap_bm.shape[1], dispmap_bm.shape[0]))
+
+        #center = (dispmap_sgbm.shape[1] // 2, dispmap_sgbm.shape[0] // 2)
+        #rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+        #rotated_dispmap2 = cv2.warpAffine(dispmap_sgbm, rotation_matrix, (dispmap_sgbm.shape[1], dispmap_sgbm.shape[0]))
+
+        #dx, dy = 40, 40 
+        #translation_matrix = np.float32([[1, 0, dx], [0, 1, dy]])
+        #aligned_dispmap = cv2.warpAffine(rotated_dispmap, translation_matrix, (rotated_dispmap.shape[1], rotated_dispmap.shape[0]))
+        #aligned_dispmap2 = cv2.warpAffine(rotated_dispmap2, translation_matrix, (rotated_dispmap2.shape[1], rotated_dispmap2.shape[0]))
+
+        draw_dist_1 = draw_depth_map(img_l, dispmap_bm)
+        draw_dist_2 = draw_depth_map(img_l, dispmap_sgbm)
+
+        focal_len = nav_data_estimator.config_parser.left_camera_specs.focal_length
+        pixel_size = nav_data_estimator.config_parser.left_camera_specs.pixel_size
+        baseline = nav_data_estimator.config_parser.system_setup.baseline_distance
+
+        distance_map_1 = nav_data_estimator.distance_calculator.get_distance_map(dispmap_bm, focal_len,
+                                                                                 pixel_size, baseline)
+        
+        distance_map_2 = nav_data_estimator.distance_calculator.get_distance_map(dispmap_sgbm, focal_len,
+                                                                                 pixel_size, baseline)
+                                                                                 
+
+        combined_image = cv2.hconcat([cv2.resize(draw_dist_1, test_size), cv2.resize(draw_dist_2, test_size)])
+        cv2.imshow('Res', combined_image)
+        cv2.waitKey(0)
+
+
+        margin = 50
+        step = 100
+        #image_width, image_height = nav_data_estimator.config_parser.parameters.resolution
+        image_width, image_height = (800, 600)
+        x_points = np.arange(margin, image_width - margin, step)
+        y_points = np.arange(margin, image_height - margin, step)
+
+        points = [(int(x), int(y)) for x in x_points for y in y_points]
+
+        dist1 = draw_distance(img_l, distance_map_1, points)
+        cv2.imshow('dist 1', cv2.resize(dist1, test_size))
+        cv2.waitKey(0)
+
+        dist2 = draw_distance(img_l, distance_map_2, points)
+        cv2.imshow('dist 2', cv2.resize(dist2, test_size))
+        cv2.waitKey(0)
+        
+        
+        cv2.destroyAllWindows()
+
 
 
     def test(self):
@@ -89,38 +220,13 @@ class MainApp:
                                               level=self.log_level, 
                                               config_path=self.config_filepath)
         
-        video_left  = Path("./modules/NavDataEstimator/calibration/videos/left_camera.mp4")
-        video_right = Path("./modules/NavDataEstimator/calibration/videos/right_camera.mp4")
-        
         #nav_data_estimator.distance_calculator.calibrate_cameras_video(video_path_l=video_left,
         #                                                               video_path_r=video_right)
         
         image_size = nav_data_estimator.config_parser.parameters.resolution
-
-        cap_left = cv2.VideoCapture(video_left)
-        cap_right = cv2.VideoCapture(video_right)
-
-        ret_l, frame_left = cap_left.read()
-        ret_r, frame_right = cap_right.read()
-
-        if not ret_l or not ret_r:
-            print("Error capturing frames from video.")
-            return
-
-        cap_left.release()
-        cap_right.release()
-
-        frame_left = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
-        frame_right = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)
-
-        test_img_l = cv2.resize(frame_left, image_size)
-        test_img_r = cv2.resize(frame_right, image_size)
         
-        # test_img_l = cv2.imread("./modules/NavDataEstimator/test/left.jpg",  cv2.IMREAD_GRAYSCALE)
-        # test_img_r = cv2.imread("./modules/NavDataEstimator/test/right.jpg", cv2.IMREAD_GRAYSCALE)
-
-        #test_img_l = cv2.resize(test_img_l, image_size)
-        #test_img_r = cv2.resize(test_img_r, image_size)
+        img_l = cv2.imread("./modules/NavDataEstimator/test/video_1_1_test_left.png",  cv2.IMREAD_GRAYSCALE)
+        img_r = cv2.imread("./modules/NavDataEstimator/test/video_1_1_test_right.png", cv2.IMREAD_GRAYSCALE)
 
         with open("./modules/NavDataEstimator/calibration/params/calibration_left.pkl", 'rb') as file:
             camera_matrix_l, dist_l, _, _, obj_points_list_l, img_points_list_l = pickle.load(file)
@@ -128,128 +234,141 @@ class MainApp:
         with open("./modules/NavDataEstimator/calibration/params/calibration_right.pkl", 'rb') as file:
             camera_matrix_r, dist_r, _, _, _, img_points_list_r = pickle.load(file)
 
+        camera_matrix_l, roi_l = cv2.getOptimalNewCameraMatrix(
+            camera_matrix_l, dist_l, image_size, 
+            alpha=nav_data_estimator.config_parser.parameters.alpha, centerPrincipalPoint=True
+        )
+        camera_matrix_r, roi_r = cv2.getOptimalNewCameraMatrix(
+            camera_matrix_r, dist_r, image_size,
+            alpha=nav_data_estimator.config_parser.parameters.alpha, centerPrincipalPoint=True
+        )
+
         rectified_images = nav_data_estimator.distance_calculator.get_rectified_images(
-            image_left=test_img_l, 
-            image_right=test_img_r,
+            image_left=img_l,
+            image_right=img_r,
             obj_points_list_l=obj_points_list_l,
             img_points_list_l=img_points_list_l,
             img_points_list_r=img_points_list_r,
-            camera_matrix_l=camera_matrix_l, 
-            dist_l=dist_l, 
-            camera_matrix_r=camera_matrix_r, 
+            camera_matrix_l=camera_matrix_l,
+            dist_l=dist_l,
+            camera_matrix_r=camera_matrix_r,
             dist_r=dist_r
         )
-        rectified_left, rectified_right, roi1, _ = rectified_images
 
-        #rectified_left_with_lines = draw_horizontal_lines(image=rectified_left,
+        test_size = (800, 600)
+        rectified_left, rectified_right, roi_l, roi_r = rectified_images
+
+        #rectified_left_roi  = cv2.resize(draw_roi(rectified_left, roi_l), (800, 600))
+        #rectified_right_roi = cv2.resize(draw_roi(rectified_right, roi_l), (800, 600))
+
+        #combined_image = cv2.hconcat([cv2.resize(img_l, test_size), cv2.resize(img_r, test_size)])
+        #cv2.imshow('Original images', combined_image)
+        #cv2.waitKey(0)
+
+
+        sift = cv2.SIFT_create()
+        keypoints_left, descriptors_left   = sift.detectAndCompute(img_l, None)
+        keypoints_right, descriptors_right = sift.detectAndCompute(img_r, None)
+
+        FLANN_INDEX_KDTREE = 1
+        index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+        search_params = dict(checks=50)
+        flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+        matches = flann.knnMatch(descriptors_left, descriptors_right, k=2)
+        good_matches = [m for m, n in matches if m.distance < 0.7 * n.distance]
+        pts1 = [keypoints_left[m.queryIdx].pt for m in good_matches]
+        pts2 = [keypoints_right[m.trainIdx].pt for m in good_matches]
+
+        pts1 = np.int32(pts1)
+        pts2 = np.int32(pts2)
+        fundamental_matrix, inliers = cv2.findFundamentalMat(pts1, pts2, cv2.FM_RANSAC)
+
+        # We select only inlier points
+        pts1 = pts1[inliers.ravel() == 1]
+        pts2 = pts2[inliers.ravel() == 1]
+        
+        def drawlines(img1src, img2src, lines, pts1src, pts2src):
+            ''' img1 - image on which we draw the epilines for the points in img2
+                lines - corresponding epilines '''
+            r, c = img1src.shape
+            img1color = cv2.cvtColor(img1src, cv2.COLOR_GRAY2BGR)
+            img2color = cv2.cvtColor(img2src, cv2.COLOR_GRAY2BGR)
+            # Edit: use the same random seed so that two images are comparable!
+            np.random.seed(0)
+            for r, pt1, pt2 in zip(lines, pts1src, pts2src):
+                color = tuple(np.random.randint(0, 255, 3).tolist())
+                x0, y0 = map(int, [0, -r[2]/r[1]])
+                x1, y1 = map(int, [c, -(r[2]+r[0]*c)/r[1]])
+                img1color = cv2.line(img1color, (x0, y0), (x1, y1), color, 1)
+                img1color = cv2.circle(img1color, tuple(pt1), 5, color, -1)
+                img2color = cv2.circle(img2color, tuple(pt2), 5, color, -1)
+            return img1color, img2color
+        
+        lines1 = cv2.computeCorrespondEpilines(
+            pts2.reshape(-1, 1, 2), 2, fundamental_matrix)
+        lines1 = lines1.reshape(-1, 3)
+        img5, img6 = drawlines(img_l, img_r, lines1, pts1, pts2)
+
+        lines2 = cv2.computeCorrespondEpilines(
+            pts1.reshape(-1, 1, 2), 1, fundamental_matrix)
+        lines2 = lines2.reshape(-1, 3)
+        img3, img4 = drawlines(img_r, img_l, lines2, pts2, pts1)
+
+        h1, w1 = img_l.shape
+        h2, w2 = img_r.shape
+        _, H1, H2 = cv2.stereoRectifyUncalibrated(
+            np.float32(pts1), np.float32(pts2), fundamental_matrix, imgSize=(w1, h1)
+        )
+
+        img1_rectified = cv2.warpPerspective(img_l, H1, (w1, h1))
+        img2_rectified = cv2.warpPerspective(img_r, H2, (w2, h2))
+
+        block_size = 7
+        min_disp = -128
+        max_disp = 128
+
+        num_disp = max_disp - min_disp
+        uniquenessRatio = 5
+        speckleWindowSize = 200
+        speckleRange = 2
+        disp12MaxDiff = 0
+
+        stereo = cv2.StereoSGBM_create(
+            minDisparity=min_disp,
+            numDisparities=num_disp,
+            blockSize=block_size,
+            uniquenessRatio=uniquenessRatio,
+            speckleWindowSize=speckleWindowSize,
+            speckleRange=speckleRange,
+            disp12MaxDiff=disp12MaxDiff,
+            P1=8 * 1 * block_size * block_size,
+            P2=32 * 1 * block_size * block_size,
+        )
+        disparity_SGBM = stereo.compute(img1_rectified, img2_rectified)
+
+        disparity_SGBM = cv2.normalize(disparity_SGBM, disparity_SGBM, alpha=255,
+                              beta=0, norm_type=cv2.NORM_MINMAX)
+        disparity_SGBM = np.uint8(disparity_SGBM)
+        cv2.imshow("Disparity", disparity_SGBM)
+        cv2.waitKey(0)
+
+        #combined_image = cv2.hconcat([img5, img3])
+        #cv2.imshow('Rectified with lines', combined_image)
+        #cv2.waitKey(0)
+
+        #rectified_left_with_lines = draw_horizontal_lines(image=rectified_left_roi,
         #                                                  line_interval=50,
         #                                                  color=(0, 255, 0),
         #                                                  thickness=2)
-        
-        #rectified_right_with_lines = draw_horizontal_lines(image=rectified_right,
+
+        #rectified_right_with_lines = draw_horizontal_lines(image=rectified_right_roi,
         #                                                   line_interval=50,
         #                                                   color=(0, 255, 0), 
         #                                                   thickness=2)
         
-        #combined_image = cv2.hconcat([rectified_left_with_lines, rectified_right_with_lines])
-        #cv2.imshow('Rectified with lines', combined_image)
-        #cv2.waitKey(0)
 
-        num_disparities = nav_data_estimator.config_parser.parameters.num_disparities
-        block_size = nav_data_estimator.config_parser.parameters.block_size
-        depth_map  = nav_data_estimator.distance_calculator.get_depth_map(left_image=rectified_left,
-                                                                          right_image=rectified_right,
-                                                                          n_disparities=num_disparities,
-                                                                          block_size=block_size)
 
-        normalized_depth_map = nav_data_estimator.distance_calculator.normalize_depth_map(depth_map)
-        normalized_depth_map = crop_roi(normalized_depth_map, roi1)
-
-        h, w = normalized_depth_map.shape[0], normalized_depth_map.shape[1]
-        #cv2.imshow("Depth map", cv2.resize(normalized_depth_map, (w, h)))
-        #cv2.waitKey(0)
-        #cv2.destroyAllWindows()
-
-        focal_length_l = nav_data_estimator.config_parser.left_camera_specs.focal_length
-        pixel_size_l   = nav_data_estimator.config_parser.left_camera_specs.pixel_size
-
-        baseline = nav_data_estimator.config_parser.system_setup.baseline_distance
-
-        distance_map_left = nav_data_estimator.distance_calculator.get_distance_map(depth_map,
-                                                                                    focal_length_l,
-                                                                                    pixel_size_l,
-                                                                                    baseline)
-        #points = [(615, 161), (328, 147), (173, 285), (509, 352), (554, 261)]
-
-        margin = 50  
-        step = 100
-        image_width, image_height = nav_data_estimator.config_parser.parameters.resolution
-        x_points = np.arange(margin, image_width - margin, step)
-        y_points = np.arange(margin, image_height - margin, step)
-
-        points = [(int(x), int(y)) for x in x_points for y in y_points]
-
-        #draw_distance(image=test_img_l, 
-        #              distance_map=distance_map_left,
-        #              points=points)
-
-        _, _, _, _, _, R, T, _, _ = cv2.stereoCalibrate(
-            obj_points_list_l, img_points_list_l, img_points_list_r,
-            camera_matrix_l, dist_l, camera_matrix_r, dist_r,
-            image_size, flags=cv2.CALIB_FIX_INTRINSIC
-        )
-
-        R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(
-            camera_matrix_l, dist_l, camera_matrix_r, dist_r,
-            image_size, R, T, alpha=1
-        )
-
-        map_left_x, map_left_y = cv2.initUndistortRectifyMap(
-            camera_matrix_l, dist_l, R1, P1, image_size, cv2.CV_32FC1
-        )
-
-        map_right_x, map_right_y = cv2.initUndistortRectifyMap(
-            camera_matrix_r, dist_r, R2, P2, image_size, cv2.CV_32FC1
-        )
-
-        precomputed_maps = {
-            'map_left_x': map_left_x,
-            'map_left_y': map_left_y,
-            'map_right_x': map_right_x,
-            'map_right_y': map_right_y
-        }
-
-        cap_left = cv2.VideoCapture(video_left)
-        cap_right = cv2.VideoCapture(video_right)
-
-        fps = cap_left.get(cv2.CAP_PROP_FPS)
-        delay = int(1000 / fps)
-
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            while cap_left.isOpened() and cap_right.isOpened():
-                ret_left, frame_left = cap_left.read()
-                ret_right, frame_right = cap_right.read()
-
-                if not ret_left or not ret_right:
-                    break
-
-                # Submit the frame processing to the thread pool
-                future = executor.submit(nav_data_estimator.distance_calculator.process_frame, 
-                                         frame_left, frame_right, nav_data_estimator, 
-                                         precomputed_maps, roi1, focal_length_l, pixel_size_l, baseline, points)
-
-                # Get the result
-                frame_with_distances = future.result()
-
-                # Display the processed frame in real-time
-                cv2.imshow('Real-Time Video with Distances', frame_with_distances)
-
-                # Exit if the user presses 'q'
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-        cap_left.release()
-        cap_right.release()
         cv2.destroyAllWindows()
 
 

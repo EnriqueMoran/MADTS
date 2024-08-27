@@ -107,7 +107,6 @@ class MainApp:
                                               format=self.log_format,
                                               level=self.log_level,
                                               config_path=self.config_filepath)
-        
 
         params_file_left  = nav_data_estimator.distance_calculator.left_calibrator.load_param_file
         params_file_right = nav_data_estimator.distance_calculator.right_calibrator.load_param_file
@@ -143,8 +142,8 @@ class MainApp:
             alpha=nav_data_estimator.config_parser.parameters.alpha, centerPrincipalPoint=True
         )
 
-        #undistorted_img_l = cv2.undistort(self.img_l, camera_matrix_l, dist_l)
-        #undistorted_img_r = cv2.undistort(self.img_r, camera_matrix_r, dist_r)
+        undistorted_img_l = cv2.undistort(self.img_l, camera_matrix_l, dist_l)
+        undistorted_img_r = cv2.undistort(self.img_r, camera_matrix_r, dist_r)
 
         #undistorted_img_l  = draw_roi(undistorted_img_l, roi_l)
         #undistorted_img_r = draw_roi(undistorted_img_r, roi_r)
@@ -169,13 +168,13 @@ class MainApp:
 
         rectified_left, rectified_right, roi_l, roi_r = rectified_images
 
-        rectified_left_h  = draw_horizontal_lines(rectified_left)
-        rectified_right_h = draw_horizontal_lines(rectified_right)
-        rectified_left_h  = cv2.resize(rectified_left_h, (800, 450))
-        rectified_right_h = cv2.resize(rectified_right_h, (800, 450))
-        combined_image    = cv2.hconcat([rectified_left_h, rectified_right_h])
-        cv2.imshow("Horizontal lines", combined_image)
-        cv2.waitKey(0)
+        #rectified_left_h  = draw_horizontal_lines(rectified_left)
+        #rectified_right_h = draw_horizontal_lines(rectified_right)
+        #rectified_left_h  = cv2.resize(rectified_left_h, (800, 450))
+        #rectified_right_h = cv2.resize(rectified_right_h, (800, 450))
+        #combined_image    = cv2.hconcat([rectified_left_h, rectified_right_h])
+        #cv2.imshow("Horizontal lines", combined_image)
+        #cv2.waitKey(0)
 
         #rectified_left  = draw_roi(rectified_left, roi_l)
         #rectified_right = draw_roi(rectified_right, roi_r)    # IMPORTANT:  roi_r should be used!
@@ -234,8 +233,8 @@ if __name__ == "__main__":
 
     #args = parser.parse_args()
 
-    args = parser.parse_args(['--img_l', './modules/NavDataEstimator/test/left.jpg',
-                              '--img_r', './modules/NavDataEstimator/test/right.jpg',
+    args = parser.parse_args(['--img_l', './modules/NavDataEstimator/test/video_3_1_test_left.png',
+                              '--img_r', './modules/NavDataEstimator/test/video_3_1_test_right.png',
                               '--level', 'DEBUG',
                               '--log', './modules/NavDataEstimator/logs/20240823.log'])
 

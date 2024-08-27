@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-
+from modules.NavDataEstimator.src.utils.enums import UndistortMethod
 
 __author__ = "EnriqueMoran"
 
@@ -33,10 +33,11 @@ class CalibrationSpecs:
 
 @dataclass
 class Parameters:
-    save_calibrated_image: bool       = None
-    video_calibration_step: int = None
-    num_disparities: int        = None
-    block_size: int             = None
-    gaussian_kernel_size: int   = None
-    resolution: tuple[int, int] = None
-    alpha: float                = None
+    save_calibrated_image: bool      = None
+    video_calibration_step: int      = None
+    num_disparities: int             = None
+    block_size: int                  = None
+    gaussian_kernel_size: int        = None
+    resolution: tuple[int, int]      = None
+    alpha: float                     = None
+    undistort_method:UndistortMethod = None

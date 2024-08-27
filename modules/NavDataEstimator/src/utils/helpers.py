@@ -53,10 +53,15 @@ def draw_distance(image, distance_map, points):
     """
     # Check if the image is grayscale (single channel) or color (3 channels)
     if len(image.shape) == 2:
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)  
+        # TODO Fix, check also distance map
+        # TODO apply distance to all
 
     for (x, y) in points:
         distance = distance_map[y, x]
+
+        if isinstance(distance, np.ndarray):
+            distance = distance[0]
 
         if distance < 0:
             cv2.circle(image, (x, y), 5, (0, 0, 255), -1)
