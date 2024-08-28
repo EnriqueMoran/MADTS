@@ -94,3 +94,18 @@ def draw_depth_map(img, depth_map):
     beta = 1.0 - alpha  # Transparency factor for the depth map
     combined_image = cv2.addWeighted(img_color, alpha, depth_map, beta, 0)
     return combined_image
+
+def get_reprojection_error(self, obj_points_list, img_points_list, rvecs, tvecs, dist, 
+                               camera_matrix):
+        """
+        TBD
+        """
+        mean_error = 0
+
+        for i in range(len(obj_points_list)):
+            img_points_2, _ = cv2.projectPoints(obj_points_list[i], rvecs[i], tvecs[i], 
+                                                camera_matrix, dist)
+            error = cv2.norm(img_points_list[i], img_points_2, cv2.NORM_L2) / len(img_points_2)
+            mean_error += error
+
+        return mean_error / len(obj_points_list)

@@ -80,53 +80,86 @@ class MainApp:
 
 
     def run(self):
-        self.test2()
+        self.test3()
     
+
+    def test3(self):
+        nav_data_estimator = NavDataEstimator(filename=self.log_filepath, 
+                                              format=self.log_format, 
+                                              level=self.log_level, 
+                                              config_path=self.config_filepath)
+
+        video_left  = Path("./modules/NavDataEstimator/calibration/videos/20240822/calibration_1_left.mp4")
+        video_right = Path("./modules/NavDataEstimator/calibration/videos/20240822/calibration_1_right.mp4")
+
+        params = nav_data_estimator.distance_calculator.calibrator.calibrate_cameras()
+        if params:
+            err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = params
+        else:
+            print(f"Error calibrating cameras. Aborting!")
+            return
+    
+        print(f"Reprojection error: {err}")
+
+        params = nav_data_estimator.distance_calculator.calibrator.load_calibration()
+        
+        err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = \
+        params["err"], params["Kl"], params["Dl"], params["Kr"], params["Dr"], params["R"], \
+        params["T"], params["E"], params["F"], params["pattern_points"], params["left_pts"], \
+        params["right_pts"]
+
+
+
 
     def test2(self):
         nav_data_estimator = NavDataEstimator(filename=self.log_filepath, 
                                               format=self.log_format, 
                                               level=self.log_level, 
                                               config_path=self.config_filepath)
-        left_calibrator  = nav_data_estimator.distance_calculator.left_calibrator
-        right_calibrator = nav_data_estimator.distance_calculator.right_calibrator
 
         video_left  = Path("./modules/NavDataEstimator/calibration/videos/20240822/calibration_1_left.mp4")
         video_right = Path("./modules/NavDataEstimator/calibration/videos/20240822/calibration_1_right.mp4")
 
         # Error, left camera matrix, left camera distortion, right camera matrix, right camera distortion
         # Rotation matrix, Translation matrix, Essential matrix, Fundamental matrix
-        #err, Kl, Dl, Kr, Dr, R, T, E, F = nav_data_estimator.distance_calculator.calibrate_cameras_video(video_left, video_right)
-        #print(f"Reprojection error: {err}")
-        #pickle.dump((Kl, Dl, Kr, Dr, R, T, E, F), open("test.pkl", "wb" ))
+       # err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = \
+       #     nav_data_estimator.distance_calculator.calibrate_cameras_video(video_left, video_right)
+       # print(f"Reprojection error: {err}")
+       # nav_data_estimator.distance_calculator.left_calibrator.save_calibration(err, Kl, Dl, Kr, Dr,
+       #                                                                          R, T, E, F,
+       #                                                                          pattern_points,
+       #                                                                          left_pts,
+       #                                                                          right_pts)
 
-        with open("test.pkl", 'rb') as file:
-            Kl, Dl, Kr, Dr, R, T, E, F = pickle.load(file)
+        params = nav_data_estimator.distance_calculator.left_calibrator.load_calibration()
+        
+        err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = \
+        params["err"], params["Kl"], params["Dl"], params["Kr"], params["Dr"], params["R"], \
+        params["T"], params["E"], params["F"], params["pattern_points"], params["left_pts"], \
+        params["right_pts"]
 
         test_size = (800, 600)
 
         img_l = cv2.imread("./modules/NavDataEstimator/test/video_1_1_test_left.png",  cv2.IMREAD_GRAYSCALE)
         img_r = cv2.imread("./modules/NavDataEstimator/test/video_1_1_test_right.png", cv2.IMREAD_GRAYSCALE)
 
-        undistorted_l = left_calibrator.undistort_image(Kl, Dl, img_l)
-        undistorted_r = right_calibrator.undistort_image(Kr, Dr, img_r)
+        img_size = img_l.shape[:2][::-1]
+        R1, R2, P1, P2, Q, validRoi1, validRoi2 = cv2.stereoRectify(Kl, Dl, Kr, Dr, img_size, R, T)
+        xmap1, ymap1 = cv2.initUndistortRectifyMap(Kl, Dl, R1, P1, img_size, cv2.CV_32FC1)
+        xmap2, ymap2 = cv2.initUndistortRectifyMap(Kr, Dr, R2, P2, img_size, cv2.CV_32FC1)
 
-        opt_cam_mat_l, valid_roi = cv2.getOptimalNewCameraMatrix(Kl, Dl, img_l.shape[:2][::-1], 0)
-        undistorted_l = cv2.undistort(img_l, Kl, Dl, None, opt_cam_mat_l)
+        #left_img_rectified  = cv2.remap(img_l, xmap1, ymap1, cv2.INTER_LINEAR)
+        #right_img_rectified = cv2.remap(img_r, xmap2, ymap2, cv2.INTER_LINEAR)
 
-        opt_cam_mat_r, valid_roi = cv2.getOptimalNewCameraMatrix(Kr, Dr, img_r.shape[:2][::-1], 0)
-        undistorted_r = cv2.undistort(img_r, Kr, Dr, None, opt_cam_mat_r)
+        left_img_rectified  = cv2.remap(img_l, xmap1, ymap1, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
+        right_img_rectified = cv2.remap(img_r, xmap2, ymap2, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
 
-        R1, R2, P1, P2, Q, validRoi1, validRoi2 = cv2.stereoRectify(Kl, Dl, Kr, Dr, img_l.shape[:2][::-1], R, T)
-        xmap1, ymap1 = cv2.initUndistortRectifyMap(Kl, Dl, R1, P1, img_l.shape[:2][::-1], cv2.CV_32FC1)
-        xmap2, ymap2 = cv2.initUndistortRectifyMap(Kr, Dr, R2, P2, img_l.shape[:2][::-1], cv2.CV_32FC1)
+        left_roi = crop_roi(left_img_rectified, validRoi1)
+        right_roi = crop_roi(right_img_rectified, validRoi2)
 
-        left_img_rectified = cv2.remap(img_l, xmap1, ymap1, cv2.INTER_LINEAR)
-        right_img_rectified = cv2.remap(img_r, xmap2, ymap2, cv2.INTER_LINEAR)
-
-        #combined_image = cv2.hconcat([cv2.resize(left_img_rectified, test_size), cv2.resize(right_img_rectified, test_size)])
-        #cv2.imshow('Original images', combined_image)
-        #cv2.waitKey(0)
+        combined_image = cv2.hconcat([cv2.resize(left_roi, test_size), cv2.resize(right_roi, test_size)])
+        cv2.imshow('Rectified images', combined_image)
+        cv2.waitKey(0)
 
         #undistorted_l = cv2.resize(undistorted_l, test_size)
         #undistorted_r = cv2.resize(undistorted_r, test_size)
@@ -154,6 +187,12 @@ class MainApp:
         dispmap_bm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_bm)
 
         dispmap_sgbm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_sgbm)
+
+        cv2.imshow('dispmap_bm', cv2.resize(dispmap_bm, test_size))
+        cv2.waitKey(0)
+
+        cv2.imshow('dispmap_sgbm', cv2.resize(dispmap_sgbm, test_size))
+        cv2.waitKey(0)
 
         #dispmap_bm = crop_roi(dispmap_bm, validRoi1)
         #dispmap_sgbm = crop_roi(dispmap_sgbm, validRoi1)
