@@ -30,4 +30,3 @@ class RectificationMode(Enum):
     """
     CALIBRATED_SYSTEM   = 1
     UNCALIBRATED_SYSTEM = 2
-    MATCHING_KEYPOINTS  = 3

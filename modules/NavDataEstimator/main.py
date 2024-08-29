@@ -15,7 +15,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from modules.NavDataEstimator.src.navdataestimator import NavDataEstimator
-from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_horizontal_lines, draw_roi, draw_distance, draw_depth_map
+from modules.NavDataEstimator.src.utils.enums import RectificationMode
+from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_distance, draw_depth_map
 
 
 __author__ = "EnriqueMoran"
@@ -92,14 +93,14 @@ class MainApp:
         video_left  = Path("./modules/NavDataEstimator/calibration/videos/20240822/calibration_1_left.mp4")
         video_right = Path("./modules/NavDataEstimator/calibration/videos/20240822/calibration_1_right.mp4")
 
-        params = nav_data_estimator.distance_calculator.calibrator.calibrate_cameras()
-        if params:
-            err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = params
-        else:
-            print(f"Error calibrating cameras. Aborting!")
-            return
-    
-        print(f"Reprojection error: {err}")
+        test_size = (800, 600)
+
+        #params = nav_data_estimator.distance_calculator.calibrator.calibrate_cameras()
+        #if params:
+        #    err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = params
+        #else:
+        #    print(f"Error calibrating cameras. Aborting!")
+        #    return
 
         params = nav_data_estimator.distance_calculator.calibrator.load_calibration()
         
@@ -108,7 +109,56 @@ class MainApp:
         params["T"], params["E"], params["F"], params["pattern_points"], params["left_pts"], \
         params["right_pts"]
 
+        image_left  = cv2.imread("./modules/NavDataEstimator/test/video_1_1_test_left.png")
+        image_right = cv2.imread("./modules/NavDataEstimator/test/video_1_1_test_right.png")
 
+        rect_left, rect_right, params = nav_data_estimator.distance_calculator.rectify_images(
+            image_left=image_left, image_right=image_right, Kl=Kl, Dl=Dl, Kr=Kr, Dr=Dr, R=R, T=T
+        )
+
+        #combined_image = cv2.hconcat([cv2.resize(rect_left, test_size), cv2.resize(rect_right, test_size)])
+        #cv2.imshow('Rectified images', combined_image)
+        #cv2.waitKey(0)
+        
+        n_disp = 0
+        block_size = 15
+        max_disp = 160
+
+        stereo_bm = cv2.StereoBM_create(n_disp, block_size)
+        dispmap_bm = stereo_bm.compute(rect_left, rect_right)
+
+        stereo_sgbm = cv2.StereoSGBM_create(0, max_disp, block_size)
+        dispmap_sgbm = stereo_sgbm.compute(rect_left, rect_right)
+
+        dispmap_bm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_bm)
+
+        dispmap_sgbm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_sgbm)
+
+        
+        if nav_data_estimator.distance_calculator.rectification_mode == RectificationMode.CALIBRATED_SYSTEM:
+            params['xmap'] = params['xmap_l']
+            params['ymap'] = params['ymap_l']
+        elif nav_data_estimator.distance_calculator.rectification_mode == RectificationMode.UNCALIBRATED_SYSTEM:
+            params['H'] = params['Hl']
+
+        undistorded_bm = nav_data_estimator.distance_calculator.undistort_rectified_image(
+            dispmap_bm, **params
+        )
+
+        undistorded_sgbm = nav_data_estimator.distance_calculator.undistort_rectified_image(
+            dispmap_sgbm, **params
+        )
+
+        image_left  = cv2.cvtColor(image_left, cv2.COLOR_BGR2GRAY)
+        image_right = cv2.cvtColor(image_right, cv2.COLOR_BGR2GRAY)
+
+        draw_depth_bm   = draw_depth_map(image_left, undistorded_bm)
+        draw_depth_sgbm = draw_depth_map(image_left, undistorded_sgbm)
+        
+        combined_image = cv2.hconcat([cv2.resize(draw_depth_bm, test_size), cv2.resize(draw_depth_sgbm, test_size)])
+        cv2.imshow('Depth maps', combined_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
     def test2(self):
@@ -148,11 +198,11 @@ class MainApp:
         xmap1, ymap1 = cv2.initUndistortRectifyMap(Kl, Dl, R1, P1, img_size, cv2.CV_32FC1)
         xmap2, ymap2 = cv2.initUndistortRectifyMap(Kr, Dr, R2, P2, img_size, cv2.CV_32FC1)
 
-        #left_img_rectified  = cv2.remap(img_l, xmap1, ymap1, cv2.INTER_LINEAR)
-        #right_img_rectified = cv2.remap(img_r, xmap2, ymap2, cv2.INTER_LINEAR)
+        left_img_rectified  = cv2.remap(img_l, xmap1, ymap1, cv2.INTER_LINEAR)
+        right_img_rectified = cv2.remap(img_r, xmap2, ymap2, cv2.INTER_LINEAR)
 
-        left_img_rectified  = cv2.remap(img_l, xmap1, ymap1, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
-        right_img_rectified = cv2.remap(img_r, xmap2, ymap2, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
+        #left_img_rectified  = cv2.remap(img_l, xmap1, ymap1, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
+        #right_img_rectified = cv2.remap(img_r, xmap2, ymap2, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
 
         left_roi = crop_roi(left_img_rectified, validRoi1)
         right_roi = crop_roi(right_img_rectified, validRoi2)
@@ -174,8 +224,8 @@ class MainApp:
         #normalized_depth_map     = cv2.resize(normalized_depth_map, test_size)
         #draw_map = draw_depth_map(undistorted_l, normalized_depth_map)
 
-        n_disp = 16
-        block_size = 15
+        n_disp = 0
+        block_size = 27
         max_disp = 128
 
         stereo_bm = cv2.StereoBM_create(n_disp, block_size)

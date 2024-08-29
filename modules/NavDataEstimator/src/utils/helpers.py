@@ -15,6 +15,7 @@ def draw_horizontal_lines(image, line_interval=50, color=(0, 255, 0), thickness=
     Return a copy of the image with horizontal lines.
     """
     image_copy = image.copy()
+    image_copy = cv2.cvtColor(image_copy, cv2.COLOR_GRAY2BGR)
     height, width = image.shape[:2]
     
     for y in range(0, height, line_interval):
@@ -95,8 +96,9 @@ def draw_depth_map(img, depth_map):
     combined_image = cv2.addWeighted(img_color, alpha, depth_map, beta, 0)
     return combined_image
 
-def get_reprojection_error(self, obj_points_list, img_points_list, rvecs, tvecs, dist, 
-                               camera_matrix):
+
+def get_reprojection_error(obj_points_list, img_points_list, rvecs, tvecs, dist, 
+                           camera_matrix):
         """
         TBD
         """
@@ -109,3 +111,22 @@ def get_reprojection_error(self, obj_points_list, img_points_list, rvecs, tvecs,
             mean_error += error
 
         return mean_error / len(obj_points_list)
+
+
+def draw_epipolar_lines(image_left, image_right, lines, pts_left, pts_right):
+    """
+    TBD
+    """
+    r, c = image_left.shape
+    image_left = cv2.cvtColor(image_left, cv2.COLOR_GRAY2BGR)
+    image_right = cv2.cvtColor(image_right, cv2.COLOR_GRAY2BGR)
+    
+    np.random.seed(0)
+    for r, pt1, pt2 in zip(lines, pts_left, pts_right):
+        color = tuple(np.random.randint(0, 255, 3).tolist())
+        x0, y0 = map(int, [0, -r[2]/r[1]])
+        x1, y1 = map(int, [c, -(r[2]+r[0]*c)/r[1]])
+        image_left = cv2.line(image_left, (x0, y0), (x1, y1), color, 1)
+        image_left = cv2.circle(image_left, tuple(pt1), 5, color, -1)
+        image_right = cv2.circle(image_right, tuple(pt2), 5, color, -1)
+    return image_left, image_right

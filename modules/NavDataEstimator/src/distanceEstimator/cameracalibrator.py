@@ -161,7 +161,7 @@ class Calibrator(BaseClass):
         err, Kl, Dl, Kr, Dr, R, T, E, F = cv2.stereoCalibrate(pattern_points, left_pts, right_pts, 
                                                               new_matrix_l, dist_l, new_matrix_r, 
                                                               dist_r, img_size, flags=0)
-        self.logger.info(f"Cameras calibrated!")
+        self.logger.info(f"Cameras calibrated! Reprojection error: {err}.")
         return err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts 
     
     
@@ -296,7 +296,7 @@ class Calibrator(BaseClass):
         err, Kl, Dl, Kr, Dr, R, T, E, F = cv2.stereoCalibrate(pattern_points, left_pts, right_pts, 
                                                               new_matrix_l, dist_l, new_matrix_r, 
                                                               dist_r, img_size, flags=0)
-        self.logger.info(f"Cameras calibrated!")
+        self.logger.info(f"Cameras calibrated! Reprojection error: {err}.")
         return err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts
 
 
