@@ -91,7 +91,7 @@ def draw_depth_map(img, depth_map):
     else:
         img_color = img
 
-    alpha = 0.6  # Transparency factor for the left image
+    alpha = 0.4  # Transparency factor for the left image
     beta = 1.0 - alpha  # Transparency factor for the depth map
     combined_image = cv2.addWeighted(img_color, alpha, depth_map, beta, 0)
     return combined_image

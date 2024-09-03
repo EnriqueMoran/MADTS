@@ -83,18 +83,8 @@ class DistanceCalculator(BaseClass):
             params['ymap_l'] = ymap_l
             params['xmap_r'] = xmap_r
             params['ymap_r'] = ymap_r
-
-            ######################################## DEBUG ########################################
-            h_lines_left = draw_horizontal_lines(rectified_left)
-            h_lines_right = draw_horizontal_lines(rectified_right)
-
-            test_size = (800, 600)
-            combined_image = cv2.hconcat([cv2.resize(h_lines_left, test_size), 
-                                          cv2.resize(h_lines_right, test_size)])
-            cv2.imshow('Alignment', combined_image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-            #######################################################################################
+            params['roi_l']  = roi_l
+            params['roi_r']  = roi_r
 
         elif self.rectification_mode == RectificationMode.UNCALIBRATED_SYSTEM:
             # https://stackoverflow.com/questions/36172913/opencv-depth-map-from-uncalibrated-stereo-system
@@ -108,13 +98,13 @@ class DistanceCalculator(BaseClass):
             keypoints_left, descriptors_left   = sift.detectAndCompute(image_left, None)
             keypoints_right, descriptors_right = sift.detectAndCompute(image_right, None)
 
-            FLANN_INDEX_KDTREE = 1
+            FLANN_INDEX_KDTREE = 0
             index_params  = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
             search_params = dict(checks=50)
             flann = cv2.FlannBasedMatcher(index_params, search_params)
 
             matches = flann.knnMatch(descriptors_left, descriptors_right, k=2)
-            good_matches = [m for m, n in matches if m.distance < 0.7 * n.distance]
+            good_matches = [m for m, n in matches if m.distance < 0.75 * n.distance]
             pts_l = [keypoints_left[m.queryIdx].pt for m in good_matches]
             pts_r = [keypoints_right[m.trainIdx].pt for m in good_matches]
 
@@ -138,32 +128,38 @@ class DistanceCalculator(BaseClass):
             params['Hl'] = Hl
             params['Hr'] = Hr
 
+            rectified_corners_left = cv2.perspectiveTransform(np.array([[[0, 0], [0, height], [width, 0], [width, height]]], dtype=np.float32), Hl)[0]
+            rectified_corners_right = cv2.perspectiveTransform(np.array([[[0, 0], [0, height], [width, 0], [width, height]]], dtype=np.float32), Hr)[0]
+
+            x_min_left, y_min_left = np.int32(rectified_corners_left.min(axis=0))
+            x_max_left, y_max_left = np.int32(rectified_corners_left.max(axis=0))
+
+            x_min_right, y_min_right = np.int32(rectified_corners_right.min(axis=0))
+            x_max_right, y_max_right = np.int32(rectified_corners_right.max(axis=0))
+
+            roi_l = (x_min_left, y_min_left, x_max_left - x_min_left, y_max_left - y_min_left)
+            roi_r = (x_min_right, y_min_right, x_max_right - x_min_right, y_max_right - y_min_right)
+
+            params['roi_l'] = roi_l
+            params['roi_r'] = roi_r
+
             ######################################## DEBUG ########################################
-            #lines_left_from_right = cv2.computeCorrespondEpilines(
-            #pts_r.reshape(-1, 1, 2), 2, fundamental_matrix)
+            #lines_left_from_right = cv2.computeCorrespondEpilines(pts_r.reshape(-1, 1, 2), 2, 
+            #                                                      fundamental_matrix)
             #lines_left_from_right = lines_left_from_right.reshape(-1, 3)
             #image_left_epi_right, _ = draw_epipolar_lines(image_left, image_right, 
             #                                              lines_left_from_right, pts_l, pts_r)
             #
-            #lines_right_from_left = cv2.computeCorrespondEpilines(
-            #    pts_l.reshape(-1, 1, 2), 1, fundamental_matrix)
+            #lines_right_from_left = cv2.computeCorrespondEpilines(pts_l.reshape(-1, 1, 2), 1, 
+            #                                                      fundamental_matrix)
             #lines_right_from_left = lines_right_from_left.reshape(-1, 3)
             #image_right_epi_left, _ = draw_epipolar_lines(image_right, image_left, 
             #                                              lines_right_from_left, pts_r,pts_l)
             #
-            #test_size = (800, 600)
-            #combined_image = cv2.hconcat([cv2.resize(image_left_epi_right, test_size), 
-            #                              cv2.resize(image_right_epi_left, test_size)])
+            #display_size = (750, 600)
+            #combined_image = cv2.hconcat([cv2.resize(image_left_epi_right, display_size), 
+            #                              cv2.resize(image_right_epi_left, display_size)])
             #cv2.imshow('Rectified images', combined_image)
-            #cv2.waitKey(0)
-            #
-            #h_lines_left = draw_horizontal_lines(rectified_left)
-            #h_lines_right = draw_horizontal_lines(rectified_right)
-            #
-            #test_size = (800, 600)
-            #combined_image = cv2.hconcat([cv2.resize(h_lines_left, test_size), 
-            #                              cv2.resize(h_lines_right, test_size)])
-            #cv2.imshow('Alignment', combined_image)
             #cv2.waitKey(0)
             #cv2.destroyAllWindows()
             #######################################################################################
@@ -185,7 +181,17 @@ class DistanceCalculator(BaseClass):
             xmap = kwargs.get('xmap')
             ymap = kwargs.get('ymap')
 
-            xmap_inv, ymap_inv = cv2.convertMaps(xmap, ymap, cv2.CV_16SC2)
+            xmap_inv = np.zeros_like(xmap)
+            ymap_inv = np.zeros_like(ymap)
+
+            for i in range(image.shape[0]):
+                for j in range(image.shape[1]):
+                    x = int(xmap[i, j])
+                    y = int(ymap[i, j])
+                    if 0 <= x < image.shape[1] and 0 <= y < image.shape[0]:
+                        xmap_inv[y, x] = j
+                        ymap_inv[y, x] = i
+
             undistorted_image  = cv2.remap(image, xmap_inv, ymap_inv, cv2.INTER_LINEAR)
             
         elif self.rectification_mode == RectificationMode.UNCALIBRATED_SYSTEM:

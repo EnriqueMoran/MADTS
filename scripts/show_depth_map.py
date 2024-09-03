@@ -125,12 +125,17 @@ class MainApp:
             image_left=image_left, image_right=image_right, Kl=Kl, Dl=Dl, Kr=Kr, Dr=Dr, R=R, T=T
         )
 
-        display_size = (800, 600)
+        display_size = (750, 600)
 
-        combined_image = cv2.hconcat([cv2.resize(rect_left, display_size), 
-                                      cv2.resize(rect_right, display_size)])
-        cv2.imshow('Rectified images', combined_image)
-        cv2.waitKey(0)
+        h_lines_left  = draw_horizontal_lines(cv2.resize(rect_left, display_size), 
+                                              line_interval=20)
+        h_lines_right = draw_horizontal_lines(cv2.resize(rect_right, display_size), 
+                                              line_interval=20)
+
+        combined_image = cv2.hconcat([cv2.resize(h_lines_left, display_size),
+                                      cv2.resize(h_lines_right, display_size)])
+        #cv2.imshow('Rectified images', combined_image)
+        #cv2.waitKey(0)
 
         stereo_bm  = cv2.StereoBM_create(n_disp, block_size)
         dispmap_bm = stereo_bm.compute(rect_left, rect_right)
@@ -157,17 +162,48 @@ class MainApp:
             dispmap_sgbm, **params
         )
 
+        rect_left  = cv2.cvtColor(rect_left, cv2.COLOR_GRAY2BGR)
+        rect_right = cv2.cvtColor(rect_right, cv2.COLOR_GRAY2BGR)
+
+        combined_image = cv2.hconcat([cv2.resize(dispmap_bm, display_size), 
+                                      cv2.resize(dispmap_sgbm, display_size)])
+        #cv2.imshow('Depth maps', combined_image)
+        #cv2.waitKey(0)
+
+        roi_l = params['roi_l']
+        roi_r = params['roi_r']
+
         image_left  = cv2.cvtColor(image_left, cv2.COLOR_BGR2GRAY)
         image_right = cv2.cvtColor(image_right, cv2.COLOR_BGR2GRAY)
 
-        draw_depth_bm   = draw_depth_map(image_left, undistorded_bm)
-        draw_depth_sgbm = draw_depth_map(image_left, undistorded_sgbm)
+        rect_left  = crop_roi(rect_left, roi_l)
+
+        dispmap_bm    = crop_roi(dispmap_bm, roi_l)
+        dispmap_sgbm  = crop_roi(dispmap_sgbm, roi_l)
+
+        draw_depth_bm   = draw_depth_map(rect_left, dispmap_bm)
+        draw_depth_sgbm = draw_depth_map(rect_left, dispmap_sgbm)
 
         combined_image = cv2.hconcat([cv2.resize(draw_depth_bm, display_size), 
                                       cv2.resize(draw_depth_sgbm, display_size)])
         cv2.imshow('Depth maps', combined_image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+
+        #import numpy as np
+        #from modules.NavDataEstimator.src.utils.helpers import draw_distance
+
+        #margin = 50
+        #step = 150
+        #image_width, image_height = rect_left.shape[1], rect_left.shape[0]
+        #x_points = np.arange(margin, image_width - margin, step)
+        #y_points = np.arange(margin, image_height - margin, step)
+
+        #points = [(int(x), int(y)) for x in x_points for y in y_points]
+
+        #dist1 = draw_distance(draw_depth_sgbm, dispmap_sgbm, points)
+        #cv2.imshow('dist 1', cv2.resize(dist1, display_size))
+        #cv2.waitKey(0)
 
 
 if __name__ == "__main__":
@@ -196,8 +232,8 @@ if __name__ == "__main__":
     #args = parser.parse_args()
 
     ######################## DEBUG --- MUST BE REMOVED ########################
-    args = parser.parse_args(['--img_l', './modules/NavDataEstimator/test/video_3_1_test_left.png',
-                              '--img_r', './modules/NavDataEstimator/test/video_3_1_test_right.png',
+    args = parser.parse_args(['--img_l', './modules/NavDataEstimator/test/20240903_test_left_1.png',
+                              '--img_r', './modules/NavDataEstimator/test/20240903_test_right_1.png',
                               '--level', 'DEBUG',
                               '--log', './modules/NavDataEstimator/logs/20240823.log'])
     ###########################################################################
