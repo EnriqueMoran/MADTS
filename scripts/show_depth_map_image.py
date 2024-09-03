@@ -5,7 +5,6 @@ Display depth map for given image.
 import argparse
 import cv2
 import os
-import pickle
 import sys
 
 from datetime import datetime
@@ -176,10 +175,10 @@ class MainApp:
         image_left  = cv2.cvtColor(image_left, cv2.COLOR_BGR2GRAY)
         image_right = cv2.cvtColor(image_right, cv2.COLOR_BGR2GRAY)
 
-        rect_left  = crop_roi(rect_left, roi_l)
+        rect_left = crop_roi(rect_left, roi_l)
 
-        dispmap_bm    = crop_roi(dispmap_bm, roi_l)
-        dispmap_sgbm  = crop_roi(dispmap_sgbm, roi_l)
+        dispmap_bm   = crop_roi(dispmap_bm, roi_l)
+        dispmap_sgbm = crop_roi(dispmap_sgbm, roi_l)
 
         draw_depth_bm   = draw_depth_map(rect_left, dispmap_bm)
         draw_depth_sgbm = draw_depth_map(rect_left, dispmap_sgbm)
@@ -229,7 +228,7 @@ if __name__ == "__main__":
                         type=str,
                         help="Right image to get depth map from.")
 
-    #args = parser.parse_args()
+    #args = parser.parse_args()    # TODO uncomment
 
     ######################## DEBUG --- MUST BE REMOVED ########################
     args = parser.parse_args(['--img_l', './modules/NavDataEstimator/test/20240903_test_left_1.png',

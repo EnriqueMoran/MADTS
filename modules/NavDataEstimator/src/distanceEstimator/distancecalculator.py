@@ -36,6 +36,24 @@ class DistanceCalculator(BaseClass):
         self.rectification_mode = self.config_parser.parameters.rectification_mode
 
     
+    def precompute_rectification_maps(self, Kl, Dl, Kr, Dr, image_size, R, T):
+        """
+        TBD
+        """
+        Rl, Rr, Pl, Pr, Q, roi_l, roi_r = cv2.stereoRectify(Kl, Dl, Kr, Dr, image_size, R, T)
+        xmap_l, ymap_l = cv2.initUndistortRectifyMap(Kl, Dl, Rl, Pl, image_size, cv2.CV_32FC1)
+        xmap_r, ymap_r = cv2.initUndistortRectifyMap(Kr, Dr, Rr, Pr, image_size, cv2.CV_32FC1)
+        res = {
+                "xmap_l": xmap_l,
+                "ymap_l":  ymap_l,
+                "xmap_r":  xmap_r,
+                "ymap_r":  ymap_r,
+                "roi_l":  roi_l,
+                "roi_r": roi_r
+              }
+        return res
+
+    
     def rectify_images(self, image_left, image_right, **kwargs):
         """
         TBD
