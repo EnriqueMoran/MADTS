@@ -14,7 +14,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from modules.NavDataEstimator.src.navdataestimator import NavDataEstimator
-from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_depth_map, draw_roi, draw_horizontal_lines
+from modules.NavDataEstimator.src.utils.enums import RectificationMode
+from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_depth_map, \
+                                                       draw_horizontal_lines
 
 
 class MainApp:
@@ -34,9 +36,6 @@ class MainApp:
         self.log_format   = log_format
         self.log_level    = log_level
         self.logger       = None
-        
-        self.img_l = None
-        self.img_r = None
 
         self.config_filepath = config_filepath
 
@@ -107,103 +106,66 @@ class MainApp:
                                               format=self.log_format,
                                               level=self.log_level,
                                               config_path=self.config_filepath)
-
-        params_file_left  = nav_data_estimator.distance_calculator.left_calibrator.load_param_file
-        params_file_right = nav_data_estimator.distance_calculator.right_calibrator.load_param_file
-
-        if not params_file_left.exists() or not params_file_right.exists():
-            print(f"ERROR: No calibration archives were found, calibration aborted!")
-            return
-
-        if not Path(self.img_l).exists() or not Path(self.img_r).exists():
-            print(f"ERROR: Images not found!")
-            return
         
-        self.img_l = cv2.imread(self.img_l, cv2.IMREAD_GRAYSCALE)
-        self.img_r = cv2.imread(self.img_r, cv2.IMREAD_GRAYSCALE)
+        params = nav_data_estimator.distance_calculator.calibrator.load_calibration()
 
-        image_size = nav_data_estimator.config_parser.parameters.resolution
-
-        #self.img_l = cv2.resize(self.img_l, image_size)
-        #self.img_r = cv2.resize(self.img_r, image_size)
-
-        with open(params_file_left, 'rb') as file:
-            camera_matrix_l, dist_l, _, _, obj_points_list_l, img_points_list_l = pickle.load(file)
+        err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = \
+        params["err"], params["Kl"], params["Dl"], params["Kr"], params["Dr"], params["R"], \
+        params["T"], params["E"], params["F"], params["pattern_points"], params["left_pts"], \
+        params["right_pts"]
         
-        with open(params_file_right, 'rb') as file:
-            camera_matrix_r, dist_r, _, _, _, img_points_list_r = pickle.load(file)
+        image_left  = cv2.imread(self.img_l)
+        image_right = cv2.imread(self.img_r)
 
-        camera_matrix_l, roi_l = cv2.getOptimalNewCameraMatrix(
-            camera_matrix_l, dist_l, image_size, 
-            alpha=nav_data_estimator.config_parser.parameters.alpha, centerPrincipalPoint=True
-        )
-        camera_matrix_r, roi_r = cv2.getOptimalNewCameraMatrix(
-            camera_matrix_r, dist_r, image_size, 
-            alpha=nav_data_estimator.config_parser.parameters.alpha, centerPrincipalPoint=True
-        )
+        n_disp     = nav_data_estimator.distance_calculator.config_parser.parameters.num_disparities
+        block_size = nav_data_estimator.distance_calculator.config_parser.parameters.block_size
+        max_disp   = 160
 
-        undistorted_img_l = cv2.undistort(self.img_l, camera_matrix_l, dist_l)
-        undistorted_img_r = cv2.undistort(self.img_r, camera_matrix_r, dist_r)
-
-        #undistorted_img_l  = draw_roi(undistorted_img_l, roi_l)
-        #undistorted_img_r = draw_roi(undistorted_img_r, roi_r)
-
-        #undistorted_img_l = cv2.resize(undistorted_img_l, (800, 450))
-        #undistorted_img_r = cv2.resize(undistorted_img_r, (800, 450))
-        #combined_image = cv2.hconcat([undistorted_img_l, undistorted_img_r])
-        #cv2.imshow("Undistorted Images", combined_image)
-        #cv2.waitKey(0)
-
-        rectified_images = nav_data_estimator.distance_calculator.get_rectified_images(
-            image_left=self.img_l, 
-            image_right=self.img_r,
-            obj_points_list_l=obj_points_list_l,
-            img_points_list_l=img_points_list_l,
-            img_points_list_r=img_points_list_r,
-            camera_matrix_l=camera_matrix_l,
-            dist_l=dist_l, 
-            camera_matrix_r=camera_matrix_r, 
-            dist_r=dist_r
+        rect_left, rect_right, params = nav_data_estimator.distance_calculator.rectify_images(
+            image_left=image_left, image_right=image_right, Kl=Kl, Dl=Dl, Kr=Kr, Dr=Dr, R=R, T=T
         )
 
-        rectified_left, rectified_right, roi_l, roi_r = rectified_images
+        display_size = (800, 600)
 
-        #rectified_left_h  = draw_horizontal_lines(rectified_left)
-        #rectified_right_h = draw_horizontal_lines(rectified_right)
-        #rectified_left_h  = cv2.resize(rectified_left_h, (800, 450))
-        #rectified_right_h = cv2.resize(rectified_right_h, (800, 450))
-        #combined_image    = cv2.hconcat([rectified_left_h, rectified_right_h])
-        #cv2.imshow("Horizontal lines", combined_image)
-        #cv2.waitKey(0)
+        combined_image = cv2.hconcat([cv2.resize(rect_left, display_size), 
+                                      cv2.resize(rect_right, display_size)])
+        cv2.imshow('Rectified images', combined_image)
+        cv2.waitKey(0)
 
-        #rectified_left  = draw_roi(rectified_left, roi_l)
-        #rectified_right = draw_roi(rectified_right, roi_r)    # IMPORTANT:  roi_r should be used!
+        stereo_bm  = cv2.StereoBM_create(n_disp, block_size)
+        dispmap_bm = stereo_bm.compute(rect_left, rect_right)
 
-        #resized_left = cv2.resize(rectified_left, (800, 450))
-        #resized_right = cv2.resize(rectified_right, (800, 450))
-        #combined_image = cv2.hconcat([resized_left, resized_right])
-        #cv2.imshow("Rectified Images", combined_image)
-        #cv2.waitKey(0)
-        #
-        #rectified_left  = crop_roi(rectified_left, roi_l)
-        #rectified_right = crop_roi(rectified_right, roi_r)    # IMPORTANT:  roi_r should be used!
+        stereo_sgbm  = cv2.StereoSGBM_create(0, max_disp, block_size)
+        dispmap_sgbm = stereo_sgbm.compute(rect_left, rect_right)
 
-        num_disp = nav_data_estimator.config_parser.parameters.num_disparities
-        block_size = nav_data_estimator.config_parser.parameters.block_size
+        dispmap_bm   = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_bm)
+        dispmap_sgbm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_sgbm)
 
-        depth_map  = nav_data_estimator.distance_calculator.get_depth_map(
-            left_image=rectified_left,
-            right_image=rectified_right,
-            n_disparities=num_disp,
-            block_size=block_size
-        )
+        calibration_mode = nav_data_estimator.distance_calculator.rectification_mode
+
+        if calibration_mode == RectificationMode.CALIBRATED_SYSTEM:
+            params['xmap'] = params['xmap_l']
+            params['ymap'] = params['ymap_l']
+        elif calibration_mode == RectificationMode.UNCALIBRATED_SYSTEM:
+            params['H'] = params['Hl']
         
-        normalized_depth_map = nav_data_estimator.distance_calculator.normalize_depth_map(depth_map)
+        undistorded_bm = nav_data_estimator.distance_calculator.undistort_rectified_image(
+            dispmap_bm, **params
+        )
 
-        depth_map_and_image = draw_depth_map(rectified_left, normalized_depth_map)
-        depth_map_and_image = cv2.resize(depth_map_and_image, (800, 450))
+        undistorded_sgbm = nav_data_estimator.distance_calculator.undistort_rectified_image(
+            dispmap_sgbm, **params
+        )
 
-        cv2.imshow("Depth map", depth_map_and_image)
+        image_left  = cv2.cvtColor(image_left, cv2.COLOR_BGR2GRAY)
+        image_right = cv2.cvtColor(image_right, cv2.COLOR_BGR2GRAY)
+
+        draw_depth_bm   = draw_depth_map(image_left, undistorded_bm)
+        draw_depth_sgbm = draw_depth_map(image_left, undistorded_sgbm)
+
+        combined_image = cv2.hconcat([cv2.resize(draw_depth_bm, display_size), 
+                                      cv2.resize(draw_depth_sgbm, display_size)])
+        cv2.imshow('Depth maps', combined_image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
@@ -233,10 +195,12 @@ if __name__ == "__main__":
 
     #args = parser.parse_args()
 
+    ######################## DEBUG --- MUST BE REMOVED ########################
     args = parser.parse_args(['--img_l', './modules/NavDataEstimator/test/video_3_1_test_left.png',
                               '--img_r', './modules/NavDataEstimator/test/video_3_1_test_right.png',
                               '--level', 'DEBUG',
                               '--log', './modules/NavDataEstimator/logs/20240823.log'])
+    ###########################################################################
 
     log_filepath = f"./modules/NavDataEstimator/logs/log_{datetime.now().strftime('%Y%m%d')}.log"
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'

@@ -2,9 +2,9 @@
 Implements main class.
 """
 
-from src.baseclass import BaseClass
-from src.configmanager import ConfigManager
-from src.gopromanager import GoProManager
+from modules.VideoSynchronizer.src.baseclass import BaseClass
+from modules.VideoSynchronizer.src.configmanager import ConfigManager
+from modules.VideoSynchronizer.src.gopromanager import GoProManager
 
 
 __author__ = "EnriqueMoran"

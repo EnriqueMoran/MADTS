@@ -9,6 +9,7 @@ from pathlib import Path
 from modules.NavDataEstimator.src.baseclass import BaseClass
 from modules.NavDataEstimator.src.utils.enums import CalibrationMode, RectificationMode, \
                                                      UndistortMethod
+from modules.NavDataEstimator.src.utils.globals import *
 from modules.NavDataEstimator.src.utils.structs import *
 
 
@@ -211,7 +212,7 @@ class ConfigManager(BaseClass):
                 warning_msg = f"Value not valid, accepted values': {valid_values}."
                 self.logger.warning(warning_msg)
 
-                value = 1
+                value = DEFAULT_CALIBRATION_MODE
                 warning_msg = f"Value set as {value}."
                 self.logger.warning(warning_msg)
             self.calibration.calibration_mode = CalibrationMode(value)
@@ -371,26 +372,44 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.parameters.num_disparities = int(config.get(
-                                                      "PARAMETERS", 
-                                                      "num_disparities").strip()
-                                                 )
-                                                                     
-            msg = f"Read PARAMETERS - num_disparities: {self.parameters.num_disparities}."
+            value = int(config.get(
+                            "PARAMETERS", 
+                            "num_disparities").strip()
+                       )
+            
+            msg = f"Read PARAMETERS - num_disparities: {value}."
             self.logger.info(msg)
+
+            if value % 16 != 0:
+                remainder = value % 16
+                if remainder < 8:
+                    value = value - remainder
+                else:
+                    value = value + (16 - remainder)
+                warning_msg = f"Value is not multiple of 16, set as {value}"
+                self.logger.warning(warning_msg)
+
+            self.parameters.num_disparities = value
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'num_disparities' in section 'PARAMETERS': {e}"
             self.logger.warning(warning_msg)
             res = False
         
         try:
-            self.parameters.block_size = int(config.get(
-                                                 "PARAMETERS", 
-                                                 "block_size").strip()
-                                            )
+            value = int(config.get(
+                            "PARAMETERS", 
+                            "block_size").strip()
+                       )
                                                                      
             msg = f"Read PARAMETERS - block_size: {self.parameters.block_size}."
             self.logger.info(msg)
+
+            if value % 2 == 0:
+                value += 1
+                warning_msg = f"Value is not odd, set as {value}"
+                self.logger.warning(warning_msg)
+
+            self.parameters.block_size = value
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'block_size' in section 'PARAMETERS': {e}"
             self.logger.warning(warning_msg)
@@ -415,18 +434,19 @@ class ConfigManager(BaseClass):
                               "rectify_alpha").strip()
                          )
             
-            if 0 > value:
-                value = 0
-                warning_msg = f"Value lower than minimum (0), value set as 0."
+            msg = f"Read PARAMETERS - rectify_alpha: {value}."
+            self.logger.info(msg)
+            
+            if MIN_ALPHA > value:
+                value = MIN_ALPHA
+                warning_msg = f"Value lower than minimum ({MIN_ALPHA}), value set as 0."
                 self.logger.warning(warning_msg)
-            elif value > 1:
-                value = 1
-                warning_msg = f"Value higher than maximum (1), value set as 1."
+            elif value > MAX_ALPHA:
+                value = MAX_ALPHA
+                warning_msg = f"Value higher than maximum ({MAX_ALPHA}), value set as 1."
                 self.logger.warning(warning_msg)
 
             self.parameters.rectify_alpha = value                                              
-            msg = f"Read PARAMETERS - rectify_alpha: {self.parameters.rectify_alpha}."
-            self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'rectify_alpha' in section 'PARAMETERS': {e}"
             self.logger.warning(warning_msg)
@@ -446,7 +466,7 @@ class ConfigManager(BaseClass):
                 warning_msg = f"Value not valid, accepted values': {valid_values}."
                 self.logger.warning(warning_msg)
 
-                value = 1
+                value = DEFAULT_UNDISTORT_METHOD
                 warning_msg = f"Value set as {value}."
                 self.logger.warning(warning_msg)
             self.parameters.undistort_method = UndistortMethod(value)
@@ -469,7 +489,7 @@ class ConfigManager(BaseClass):
                 warning_msg = f"Value not valid, accepted values': {valid_values}."
                 self.logger.warning(warning_msg)
 
-                value = 1
+                value = DEFAULT_RECTIFICATION_MODE
                 warning_msg = f"Value set as {value}."
                 self.logger.warning(warning_msg)
             self.parameters.rectification_mode = RectificationMode(value)

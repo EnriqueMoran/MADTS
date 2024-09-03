@@ -14,9 +14,9 @@ from open_gopro.exceptions import FailedToFindDevice
 
 from typing import Any
 
-from src.baseclass import BaseClass
-from src.configmanager import ConfigManager
-from src.utils.enums import GoProAction
+from modules.VideoSynchronizer.src.baseclass import BaseClass
+from modules.VideoSynchronizer.src.configmanager import ConfigManager
+from modules.VideoSynchronizer.src.utils.enums import GoProAction
 
 
 __author__ = "EnriqueMoran"

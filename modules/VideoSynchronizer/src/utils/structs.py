@@ -1,30 +1,35 @@
+"""
+TBD
+"""
+
 from dataclasses import dataclass
+
 
 __author__ = "EnriqueMoran"
 
 
 @dataclass
 class RTMP:
-    left_camera_url:str
-    right_camera_url:str
-    network_ssid:str
-    network_password:str
+    left_camera_url: str = None
+    right_camera_url:str = None
+    network_ssid:    str = None
+    network_password:str = None
 
 
 @dataclass
 class GoPro:
-    left_camera_name:str
-    right_camera_name:str
+    left_camera_name: str = None
+    right_camera_name:str = None
 
 
 @dataclass
 class Stream:
-    resolution:int
-    min_bitrate:int
-    max_bitrate:int
-    starting_bitrate:int
-    fov:int
-    fps:int
-    duration:int
-    hypersmooth:bool
-    record_stream:bool
+    resolution: int = None
+    min_bitrate:int = None
+    max_bitrate:int = None
+    starting_bitrate:int = None
+    fov:int = None
+    fps:int = None
+    duration:int = None
+    hypersmooth:  bool = None
+    record_stream:bool = None

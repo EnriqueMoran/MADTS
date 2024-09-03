@@ -80,24 +80,6 @@ class MainApp:
             if os.path.exists(self.log_filepath):
                 with open(self.log_filepath, 'w'):
                     pass
-        
-        if args.video_l:
-            video_l = Path(args.video_l)
-            if video_l.is_file():
-                self.video_left = args.video_l
-            else:
-                res = False
-                message = f"Error: Left camera file {video_l} not found."
-                print(message)
-        
-        if args.video_r:
-            video_r = Path(args.video_r)
-            if video_r.is_file():
-                self.video_right = args.video_r
-            else:
-                res = False
-                message = f"Error: Right camera file {video_r} not found."
-                print(message)
 
         return res
 
@@ -108,40 +90,7 @@ class MainApp:
                                               level=self.log_level,
                                               config_path=self.config_filepath)
         
-        cl = nav_data_estimator.distance_calculator.left_calibrator.calibration_image_path.exists()
-        cr = nav_data_estimator.distance_calculator.right_calibrator.calibration_image_path.exists()
-        if not self.video_left and not self.video_right and not cl and not cr:
-            print(f"ERROR: No calibration videos nor calibration images directories were found, " +\
-                  f"calibration aborted!")
-            return
-        
-        if self.video_left and self.video_right:    # Calibrate using video
-            print("Calibrating cameras using the following videos:")
-            print(f"{self.video_left}\n{self.video_right}")
-
-            nav_data_estimator.distance_calculator.calibrate_cameras_video(
-                video_path_l=self.video_left,
-                video_path_r=self.video_right,
-                save_calibrations=nav_data_estimator.config_parser.left_camera_calibration.save_calibration_params,
-                step=nav_data_estimator.config_parser.parameters.video_calibration_step
-                )
-        
-        elif not self.video_left and not self.video_right:    # Calibrate using images
-            print("Calibrating cameras using images...")
-
-            nav_data_estimator.distance_calculator.calibrate_cameras(
-                 save_calibrations=nav_data_estimator.config_parser.right_camera_calibration.save_calibration_params
-                 )
-        
-        else:
-            print("ERROR: only one calibration video found!")
-            print(f"Left video: {self.video_left}")
-            print(f"Right video: {self.video_right}")
-            return
-        
-        print(f"Cameras calibrated. \nParameters saved as " +\
-              f"{nav_data_estimator.distance_calculator.left_calibrator.save_param_file} and " +\
-              f"{nav_data_estimator.distance_calculator.right_calibrator.save_param_file}")
+        nav_data_estimator.distance_calculator.calibrator.calibrate_cameras()
         
         return
 
@@ -161,24 +110,13 @@ if __name__ == "__main__":
                         type=bool,
                         help="If enabled, won't clear logs files on new run.")
     
-    parser.add_argument("--video_l",
-                        type=str,
-                        help="Left camera calibration video.")
-    
-    parser.add_argument("--video_r",
-                        type=str,
-                        help="Right camera calibration video.")
 
-    #args = parser.parse_args()
-
-    args = parser.parse_args(['--video_l', './modules/NavDataEstimator/calibration/videos/20240822/calibration_3_left.mp4',
-                              '--video_r', './modules/NavDataEstimator/calibration/videos/20240822/calibration_3_right.mp4',
-                              '--level', 'DEBUG',
-                              '--log', './modules/NavDataEstimator/logs/20240823.log'])
+    args = parser.parse_args()
 
     log_filepath = f"./modules/NavDataEstimator/logs/log_{datetime.now().strftime('%Y%m%d')}.log"
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
+    
 
     config_filepath = f"./modules/NavDataEstimator/cfg/config.ini"
     

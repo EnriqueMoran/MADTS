@@ -33,7 +33,3 @@ class NavDataEstimator(BaseClass):
                                                       format=format, 
                                                       level=level, 
                                                       config_path=config_path)
-        
-        #self.distance_calculator.calibrate_cameras()
-        
-    
