@@ -269,6 +269,25 @@ class DistanceCalculator(BaseClass):
         return distance_map
 
 
+    def apply_disparity_filter(self, disp_map, stereo, image_left, image_right):
+        """
+        TBD
+        """
+        lmbda = 8000
+        sigma = 1.5
+        right_matcher = cv2.ximgproc.createRightMatcher(stereo)
+        disparity_right = right_matcher.compute(image_right, image_left)
+
+        wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=stereo)
+        wls_filter.setLambda(lmbda)
+        wls_filter.setSigmaColor(sigma)
+
+        filtered_disp = wls_filter.filter(disp_map, image_left, 
+                                          disparity_map_right=disparity_right)
+        filtered_disp = cv2.normalize(filtered_disp, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+        return filtered_disp
+
+
     def process_frame(self, frame_left, frame_right, nav_data_estimator, precomputed_maps, roi1, 
                       focal_length_l, pixel_size_l, baseline, points):
         frame_left_resized = cv2.resize(frame_left, 

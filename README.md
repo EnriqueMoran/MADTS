@@ -21,7 +21,7 @@ Due to time, budget, and resource constraints, two *GoPro HERO 10 Black* cameras
 
 ## Architecture
 The architecture of MADTS is microservices-based and consists of the following modules:
-* **RTPM Servers:** Two RTPM servers that receive the video stream from two *GoPro HERO 10 Black*.
+* **RTMP Servers:** Two RTMP servers that receive the video stream from two *GoPro HERO 10 Black*.
 * **VideoSynchronizer:** Uses **OpenGoPro API** to manage and synchronize both video streams.
 * **VesselDetector:** Applies Deep Learning to detect and classify vessels.
 * **NavDataEstimator:** Estimates navigation data of detected vessels (heading, speed, distance, friend or foe).

@@ -81,24 +81,21 @@ class MainApp:
                 with open(self.log_filepath, 'w'):
                     pass
         
-        if args.video_l:
-            video_l = Path(args.video_l)
-            if video_l.is_file():
-                self.video_l = args.video_l
-            else:
-                res = False
-                message = f"Error: File {video_l} not found."
-                print(message)
+        if args.stream_l:
+            self.stream_l = args.stream_l
+            
+        else:
+            res = False
+            message = f"Error: RTMP stream URL for left camera not provided."
+            print(message)
         
-        if args.video_r:
-            video_r = Path(args.video_r)
-            if video_r.is_file():
-                self.video_r = args.video_r
-            else:
-                res = False
-                message = f"Error: File {video_r} not found."
-                print(message)
-        
+        if args.stream_r:
+            self.stream_r = args.stream_r
+        else:
+            res = False
+            message = f"Error: RTMP stream URL for right camera not provided."
+            print(message)
+    
         return res
     
 
@@ -121,15 +118,22 @@ class MainApp:
         block_size = distance_calculator.config_parser.parameters.block_size
         max_disp   = 128
 
-        cap_l = cv2.VideoCapture(self.video_l)
-        cap_r = cv2.VideoCapture(self.video_r)
+        cap_l = cv2.VideoCapture(self.stream_l)
+        cap_r = cv2.VideoCapture(self.stream_r)
 
         ret_l, frame_l = cap_l.read()
-        cap_l.release()
-        cap_l = cv2.VideoCapture(self.video_l)
+        _, _ = cap_r.read()    # This is done to synchronize right stream (skip 1 frame)
 
-        scale = 0.75  # Reduce resolution
+        scale = 0.7  # Reduce resolution
         new_size = (int(frame_l.shape[1] * scale), int(frame_l.shape[0] * scale))
+
+
+        output_filename = 'output_depth_map.avi' 
+        codec = cv2.VideoWriter_fourcc(*'XVID')  
+        fps = 20  
+        output_size = (1500, 600) 
+        out = cv2.VideoWriter(output_filename, codec, fps, output_size)
+
 
         precomputed_params = distance_calculator.precompute_rectification_maps(Kl, Dl, Kr, Dr, 
                                                                                new_size, R, T)
@@ -170,16 +174,16 @@ class MainApp:
                 stereo_bm  = cv2.StereoBM_create(n_disp, block_size)
                 dispmap_bm = stereo_bm.compute(rect_left, rect_right)
                 elapsed_time_bm = time.time() - start_time_bm
-                print(f"StereoBM processing time: {elapsed_time_bm:.2f} seconds")
+                #print(f"StereoBM processing time: {elapsed_time_bm:.2f} seconds")
 
                 start_time_sgbm = time.time()
-                stereo_sgbm = cv2.StereoSGBM_create(0, max_disp, block_size, uniquenessRatio=10,
-                                                    speckleWindowSize=100, speckleRange=32,
-                                                    disp12MaxDiff=1,
-                                                    mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY)
+                stereo_sgbm  = cv2.StereoSGBM_create(0, max_disp, block_size, uniquenessRatio=10,
+                                                     speckleWindowSize=100, speckleRange=32,
+                                                     disp12MaxDiff=1,
+                                                     mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY)
                 dispmap_sgbm = stereo_sgbm.compute(rect_left, rect_right)
                 elapsed_time_sgbm = time.time() - start_time_sgbm
-                print(f"StereoSGBM processing time: {elapsed_time_sgbm:.2f} seconds")
+                #print(f"StereoSGBM processing time: {elapsed_time_sgbm:.2f} seconds")
 
                 dispmap_bm = distance_calculator.apply_disparity_filter(dispmap_bm, stereo_bm,
                                                                         rect_left, rect_right)
@@ -204,12 +208,14 @@ class MainApp:
                 combined_image = cv2.hconcat([cv2.resize(draw_depth_bm, display_size), 
                                               cv2.resize(draw_depth_sgbm, display_size)])
                 cv2.imshow('Depth maps', combined_image)
+                out.write(combined_image)
                 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             
             cap_l.release()
             cap_r.release()
+            out.release()
             cv2.destroyAllWindows()
 
 
@@ -229,19 +235,19 @@ if __name__ == "__main__":
                         type=bool,
                         help="If enabled, won't clear logs files on new run.")
 
-    parser.add_argument("--video_l",
+    parser.add_argument("--stream_l",
                         type=str,
-                        help="Left video to get depth map from.")
+                        help="Left camera stream to get depth map from.")
 
-    parser.add_argument("--video_r",
+    parser.add_argument("--stream_r",
                         type=str,
-                        help="Right video to get depth map from.")
+                        help="Right camera stream to get depth map from.")
 
     #args = parser.parse_args()   # TODO Uncomment
 
     ######################## DEBUG --- MUST BE REMOVED ########################
-    args = parser.parse_args(['--video_l', './modules/NavDataEstimator/test/20240903_test_left.mp4',
-                              '--video_r', './modules/NavDataEstimator/test/20240903_test_right.mp4',
+    args = parser.parse_args(['--stream_l', 'rtmp://192.168.1.140:1935/gopro_left',
+                              '--stream_r', 'rtmp://192.168.1.140:1935/gopro_right',
                               '--level', 'DEBUG',
                               '--log', './modules/NavDataEstimator/logs/20240823.log'])
     ###########################################################################

@@ -29,29 +29,29 @@ class GoProManager(BaseClass):
 
     def __init__(self, filename:str, format:str, level:str, config_manager: ConfigManager):
         super().__init__(filename, format, level)
-        self.gopro_right_name    = config_manager.gopro_right_name
-        self.gopro_left_name     = config_manager.gopro_left_name
-        self.gopro_right_in_url  = config_manager.gopro_right_in_url
-        self.gopro_left_in_url   = config_manager.gopro_left_in_url
+        self.gopro_right_name    = config_manager.gopro.right_camera_name
+        self.gopro_left_name     = config_manager.gopro.left_camera_name
+        self.gopro_right_in_url  = config_manager.rtmp.right_camera_url
+        self.gopro_left_in_url   = config_manager.rtmp.left_camera_url
 
-        self.network_ssid = config_manager.network_ssid
-        self.network_pass = config_manager.network_password
+        self.network_ssid = config_manager.rtmp.network_ssid
+        self.network_pass = config_manager.rtmp.network_password
 
-        self.record_stream = config_manager.record_stream  # TODO
-        self.min_bitrate   = config_manager.min_bitrate
-        self.max_bitrate   = config_manager.max_bitrate
-        self.start_bitrate = config_manager.starting_bitrate
+        self.record_stream = config_manager.stream.record_stream  # TODO
+        self.min_bitrate   = config_manager.stream.min_bitrate
+        self.max_bitrate   = config_manager.stream.max_bitrate
+        self.start_bitrate = config_manager.stream.starting_bitrate
 
-        if config_manager.resolution == 0:
+        if config_manager.stream.resolution == 0:
             self.resolution = proto.EnumWindowSize.WINDOW_SIZE_480
-        elif config_manager.resolution == 1:
+        elif config_manager.stream.resolution == 1:
             self.resolution = proto.EnumWindowSize.WINDOW_SIZE_720
         else:
             self.resolution = proto.EnumWindowSize.WINDOW_SIZE_1080
 
-        if config_manager.fov == 0:
+        if config_manager.stream.fov == 0:
             self.fov = proto.EnumLens.LENS_WIDE
-        elif config_manager.fov == 1:
+        elif config_manager.stream.fov == 1:
             self.fov = proto.EnumLens.LENS_LINEAR
         else:
             self.fov = proto.EnumLens.LENS_SUPERVIEW
@@ -213,7 +213,7 @@ class GoProManager(BaseClass):
                 self.logger.debug(f"Received response from {target}: {start_response}")
                 self.logger.info(f"{gopro_name} Livestream on!")
 
-                await asyncio.sleep(60)    # Test stream 1 min
+                await asyncio.sleep(280)    # Test stream 1 min TODO REMOVE
 
                 self.logger.info(f"Closing {gopro_name} livestream...")
                 log_msg = f"Sending set_shutter(DISABLE) command through BLE to {target}."
@@ -288,7 +288,7 @@ class GoProManager(BaseClass):
 
 
                         await right_task    # End connection with RIGHT GO PRO
-                    self.logger.info(f"Finished connection to RIGHT GO PRO!")
+                        self.logger.info(f"Finished connection to RIGHT GO PRO!")
 
                     await left_task    # End connection with LEFT GO PRO
                     self.logger.info(f"Finished connection to LEFT GO PRO")

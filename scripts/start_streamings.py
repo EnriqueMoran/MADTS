@@ -12,7 +12,7 @@ from datetime import datetime
 from open_gopro.logger import setup_logging
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from modules.VideoSynchronizer.src.videosynchronizer import VideoSynchronizer
 

@@ -142,8 +142,8 @@ class MainApp:
         stereo_sgbm  = cv2.StereoSGBM_create(0, max_disp, block_size)
         dispmap_sgbm = stereo_sgbm.compute(rect_left, rect_right)
 
-        dispmap_bm   = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_bm)
-        dispmap_sgbm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_sgbm)
+        #dispmap_bm   = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_bm)
+        #dispmap_sgbm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_sgbm)
 
         calibration_mode = nav_data_estimator.distance_calculator.rectification_mode
 
@@ -160,6 +160,20 @@ class MainApp:
         undistorded_sgbm = nav_data_estimator.distance_calculator.undistort_rectified_image(
             dispmap_sgbm, **params
         )
+
+        dispmap_bm = nav_data_estimator.distance_calculator.apply_disparity_filter(dispmap_bm,
+                                                                                   stereo_bm,
+                                                                                   rect_left,
+                                                                                   rect_right)
+        
+        dispmap_sgbm = nav_data_estimator.distance_calculator.apply_disparity_filter(dispmap_sgbm,
+                                                                                     stereo_sgbm,
+                                                                                     rect_left,
+                                                                                     rect_right)
+        
+        dispmap_bm   = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_bm)
+        dispmap_sgbm = nav_data_estimator.distance_calculator.normalize_depth_map(dispmap_sgbm)
+
 
         rect_left  = cv2.cvtColor(rect_left, cv2.COLOR_GRAY2BGR)
         rect_right = cv2.cvtColor(rect_right, cv2.COLOR_GRAY2BGR)
@@ -183,8 +197,8 @@ class MainApp:
         draw_depth_bm   = draw_depth_map(rect_left, dispmap_bm)
         draw_depth_sgbm = draw_depth_map(rect_left, dispmap_sgbm)
 
-        combined_image = cv2.hconcat([cv2.resize(draw_depth_bm, display_size), 
-                                      cv2.resize(draw_depth_sgbm, display_size)])
+        combined_image = cv2.hconcat([cv2.resize(dispmap_bm, display_size), 
+                                      cv2.resize(dispmap_sgbm, display_size)])
         cv2.imshow('Depth maps', combined_image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
