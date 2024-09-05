@@ -36,6 +36,70 @@ TBD. Here goes the description of each module that composes MADTS.
 ## Communications
 TBD. Here goes the desciption of communication between the modules.
 
+### VesselDetector
+
+|  **Field**  | **Type** | **Values** | **Num bytes** | **endianess** |
+|:-----------:|:--------:|:----------:|:-------------:|:-------------:|
+| point_x     | float    | [0, 1]     | 1             | Little-endian |
+| point_y     | float    | [0, 1]     | 1             | Little-endian |
+| width       | float    | [0, 1]     | 1             | Little-endian |
+| height      | float    | [0, 1]     | 1             | Little-endian |
+| class       | int      | [0, 1]     | 1             | Big-endian    |
+| probability | float    | [0, 1]     | 1             | Little-endian |
+
+* **point_x:** X position (x) of detected vessel (relative to image).
+* **point_y:** Y position (y) of detected vessel (relative to image).
+* **width:** Bounding box width of detected vessel (relative to image).
+* **height:** Bounding box height of detected vessel (relative to image).
+* **class:** Class of detected vessel (0 -> Civil; 1 -> Warship).
+* **probability:** Probability of detection.
+
+### NavDataEstimator
+
+| **Field** | **Type** | **Values** | **Num bytes** | **endianess** |
+|:---------:|:--------:|:----------:|:-------------:|:-------------:|
+| distance  | float    | [0, 18520] | 2             | Little-endian |
+| bearing   | int      | [0, 360]   | 2             | Big-endian    |
+| heading   | int      | [0, 360]   | 2             | Big-endian    |
+| speed     | float    | [0, 999]   | 2             | Little-endian |
+| behavior  | int      | [0, 2]     | 1             | Big-endian    |
+
+* **distance:** Distance from detected vessel to ownship (meters).
+* **bearing:** Bearing of detected vessel (decimal degrees).
+* **heading:** True heading of detected vessel (decimal degrees).
+* **speed:** Speed of detected vessel (knots).
+* **behavior:** 0 -> ALLY, 1 -> HOSTILE, 2 -> UNKNOWN.
+
+### TrackSender
+
+|  **Field**  | **Type** | **Values** | **Num bytes** | **endianess** |
+|:-----------:|:--------:|:----------:|:-------------:|:-------------:|
+| id          | int      | [0, 999]   | 2             | Big-endian    |
+| distance    | float    | [0, 18520] | 2             | Little-endian |
+| bearing     | int      | [0, 360]   | 2             | Big-endian    |
+| heading     | int      | [0, 360]   | 2             | Big-endian    |
+| speed       | float    | [0, 999]   | 2             | Little-endian |
+| behavior    | int      | [0, 2]     | 1             | Big-endian    |
+| point_x     | float    | [0, 1]     | 1             | Little-endian |
+| point_y     | float    | [0, 1]     | 1             | Little-endian |
+| width       | float    | [0, 1]     | 1             | Little-endian |
+| height      | float    | [0, 1]     | 1             | Little-endian |
+| class       | int      | [0, 1]     | 1             | Big-endian    |
+| probability | float    | [0, 1]     | 1             | Little-endian |
+
+* **id:** Track id.
+* **distance:** Distance from track to ownship (meters).
+* **bearing:** Track bearing (decimal degrees).
+* **heading:** Track true heading (decimal degrees).
+* **speed:** Track speed (knots).
+* **behavior:** 0 -> ALLY, 1 -> HOSTILE, 2 -> UNKNOWN.
+* **point_x:** X position (x) of track (relative to image).
+* **point_y:** Y position (y) of track (relative to image).
+* **width:** Bounding box width of track (relative to image).
+* **height:** Bounding box height of track (relative to image).
+* **class:** Class of track (0 -> Civil; 1 -> Warship).
+* **probability:** Probability of detection.
+
 ## Installation
 TBD. Here goes installation instructions.
 
