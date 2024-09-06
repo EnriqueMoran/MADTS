@@ -197,8 +197,8 @@ class MainApp:
         draw_depth_bm   = draw_depth_map(rect_left, dispmap_bm)
         draw_depth_sgbm = draw_depth_map(rect_left, dispmap_sgbm)
 
-        combined_image = cv2.hconcat([cv2.resize(dispmap_bm, display_size), 
-                                      cv2.resize(dispmap_sgbm, display_size)])
+        combined_image = cv2.hconcat([cv2.resize(draw_depth_bm, display_size), 
+                                      cv2.resize(draw_depth_sgbm, display_size)])
         cv2.imshow('Depth maps', combined_image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
