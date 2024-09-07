@@ -2,6 +2,8 @@
 TBD
 """
 
+import logging
+import os
 import socket
 import threading
 
@@ -34,23 +36,65 @@ class MulticastManager(BaseClass):
         self.running  = False    # Threads running?
         self.in_thread  = None
         self.out_thread = None
+        self._comms_in_logger  = None
+        self._comms_out_logger = None
+        self.set_loggers(filename, format, level)
         self._start_communications()
 
 
     def __del__(self):
         self._stop_communications()
-        
+
+    
+    def set_loggers(self, filename, format, level):
+        """
+        Configure separate loggers for comms_in and comms_out.
+        """
+        file_name, file_extension = os.path.splitext(filename)
+        comms_in_log  = file_name + "_comms_in" + file_extension
+        comms_out_log = file_name + "_comms_out" + file_extension
+
+        self._comms_in_logger = logging.getLogger(self.__class__.__name__ + '_comms_in')
+        self._comms_in_logger.setLevel(level)
+
+        if not any(isinstance(h, logging.FileHandler) for h in self._comms_in_logger.handlers):
+            comms_in_file_handler = logging.FileHandler(comms_in_log)
+            comms_in_file_handler.setLevel(level)
+            formatter = logging.Formatter(format)
+            comms_in_file_handler.setFormatter(formatter)
+            self._comms_in_logger.addHandler(comms_in_file_handler)
+
+        self._comms_in_logger.propagate = False
+
+        self._comms_out_logger = logging.getLogger(self.__class__.__name__ + '_comms_out')
+        self._comms_out_logger.setLevel(level)
+
+        if not any(isinstance(h, logging.FileHandler) for h in self._comms_out_logger.handlers):
+            comms_out_file_handler = logging.FileHandler(comms_out_log)
+            comms_out_file_handler.setLevel(level)
+            formatter = logging.Formatter(format)
+            comms_out_file_handler.setFormatter(formatter)
+            self._comms_out_logger.addHandler(comms_out_file_handler)
+
+        self._comms_out_logger.propagate = False
+    
     
     def _create_connections(self):
         """
         TBD
         """
         self.in_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.in_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.in_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, self.comm_in.ttl)
         self.in_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, 
                                 socket.inet_aton(self.comm_in.iface))
+        self.in_sock.bind((self.comm_in.iface, self.comm_in.port))
+
+        mreq = socket.inet_aton(self.comm_in.group) + socket.inet_aton(self.comm_in.iface)
+        self.in_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         
         self.out_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.in_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.out_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, self.comm_out.ttl)
         self.out_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, 
                                  socket.inet_aton(self.comm_out.iface))
@@ -64,16 +108,17 @@ class MulticastManager(BaseClass):
         message = nav_data.pack()
         binary_data = ''.join(format(byte, '08b') for byte in message)
         hex_data    = ''.join(format(byte, '02x') for byte in message)
-        self.logger.debug(f"NavData message to send:")
-        self.logger.debug(f"    Binary data: {binary_data}")
-        self.logger.debug(f"    Hex data: {hex_data}")
-        self.logger.debug(f"    id: {nav_data.id}")
-        self.logger.debug(f"    distance: {nav_data.distance}")
-        self.logger.debug(f"    bearing: {nav_data.bearing}")
+        self._comms_out_logger.debug(f"NavData message to send:")
+        self._comms_out_logger.debug(f"    Binary data: {binary_data}")
+        self._comms_out_logger.debug(f"    Hex data: {hex_data}")
+        self._comms_out_logger.debug(f"    id: {nav_data.id}")
+        self._comms_out_logger.debug(f"    distance: {nav_data.distance}")
+        self._comms_out_logger.debug(f"    bearing: {nav_data.bearing}")
 
         try:
-            self.in_sock.sendto(message, (self.comm_in.group, self.comm_in.port))
-            self.logger.debug(f"NavData message sent to: {self.comm_in.group}:{self.comm_in.port}")
+            self.in_sock.sendto(message, (self.comm_out.group, self.comm_out.port))
+            msg = f"NavData message sent to: {self.comm_out.group}:{self.comm_out.port}\n"
+            self._comms_out_logger.debug(msg)
         except socket.error as e:
             print(f"Error sending NavData message: {e}")
     
@@ -85,8 +130,11 @@ class MulticastManager(BaseClass):
         message_type = baseclass.BaseClass.get_type(message)
         res = None
 
+        self._comms_in_logger.debug(f"Message type: {message_type}")
         if message_type == definitions.MessageType.DETECTION:
             res = self.get_detection(message)
+        else:
+            self._comms_in_logger.debug(f"Message not processed due to unrecognized type!")
         
         return (message_type, res)
 
@@ -102,12 +150,12 @@ class MulticastManager(BaseClass):
         height = unpacked_data['height']
         probability = unpacked_data['probability']
 
-        self.logger.debug(f"Detection message unpacked:")
-        self.logger.debug(f"    x: {pos_x}")
-        self.logger.debug(f"    y: {pos_y}")
-        self.logger.debug(f"    width: {width}")
-        self.logger.debug(f"    height: {height}")
-        self.logger.debug(f"    probability: {probability}")
+        self._comms_in_logger.debug(f"Detection message unpacked:")
+        self._comms_in_logger.debug(f"    x: {pos_x}")
+        self._comms_in_logger.debug(f"    y: {pos_y}")
+        self._comms_in_logger.debug(f"    width: {width}")
+        self._comms_in_logger.debug(f"    height: {height}")
+        self._comms_in_logger.debug(f"    probability: {probability}")
         return unpacked_data
         
     
@@ -117,11 +165,11 @@ class MulticastManager(BaseClass):
         """
         self._create_connections()
         self.running = True
-        self.input_thread = threading.Thread(target=self.receive_loop, daemon=True)
-        self.output_thread = threading.Thread(target=self.send_loop, daemon=True)
+        self.input_thread = threading.Thread(target=self.receive_loop, daemon=False)
+        self.output_thread = threading.Thread(target=self.send_loop, daemon=False)
 
         self.input_thread.start()
-        #self.output_thread.start()
+        self.output_thread.start()
         self.logger.debug(f"Input and output communication threads running...")
     
 
@@ -148,7 +196,7 @@ class MulticastManager(BaseClass):
         Loop to handle sending messages.
         """
         while self.running:
-            nav_data = navdata.NavData()    # TODO
+            nav_data = navdata.NavData()    # TODO Use real data
             self.send_nav_data(nav_data)
             threading.Event().wait(1 / self.comm_out.frequency)
 
@@ -160,9 +208,9 @@ class MulticastManager(BaseClass):
         while self.running:
             try:
                 message, addr = self.in_sock.recvfrom(1024)
-                self.logger.debug(f"Received message from {addr}: {message}")
+                self._comms_in_logger.debug(f"Received message from {addr}: {message}")
                 message_type, data = self.get_message(message)
                 if message_type == definitions.MessageType.DETECTION:
-                    self.logger.debug(f"Processed detection message: {data}")
+                    self._comms_in_logger.debug(f"Processed detection message: {data}")
             except socket.error as e:
-                self.logger.error(f"Socket error: {e}")
+                self.logger.error(f"Socket error: {str(e)}")

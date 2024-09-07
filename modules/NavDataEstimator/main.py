@@ -8,6 +8,7 @@ import numpy as np
 import os
 import pickle
 import sys
+import time
 
 from datetime import datetime
 from pathlib import Path
@@ -79,16 +80,25 @@ class MainApp:
             if os.path.exists(self.log_filepath):
                 with open(self.log_filepath, 'w'):
                     pass
+                file_name, file_extension = os.path.splitext(self.log_filepath)
+                comms_in_log  = file_name + "_comms_in" + file_extension
+                with open(comms_in_log, 'w'):
+                    pass
+                comms_out_log = file_name + "_comms_out" + file_extension
+                with open(comms_out_log, 'w'):
+                    pass
+
 
 
     def run(self):
         self.test()
-    
+
 
     def test(self):
         nav_data_estimator = NavDataEstimator(filename=self.log_filepath, format=self.log_format, 
                                               level=self.log_level, 
                                               config_path=self.config_filepath)
+        
         
 
 
