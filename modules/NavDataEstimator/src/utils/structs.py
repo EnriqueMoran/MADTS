@@ -57,3 +57,4 @@ class Communication:
     port:  int = None
     iface: str = None
     ttl:   int = None
+    frequency: float = None

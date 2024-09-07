@@ -40,11 +40,11 @@ class Detection(BaseClass):
         height      -> Type: Float | Num Bytes: 4 | Endianness: Little-endian
         probability -> Type: Float | Num Bytes: 4 | Endianness: Little-endian
         """
-        res = struct.pack('>B', self._message_type) + \
-              struct.pack('<f', self._x)            + \
-              struct.pack('<f', self._y)            + \
-              struct.pack('<f', self._width)        + \
-              struct.pack('<f', self._height)       + \
+        res = struct.pack('>B', self._message_type.value) + \
+              struct.pack('<f', self._x)                  + \
+              struct.pack('<f', self._y)                  + \
+              struct.pack('<f', self._width)              + \
+              struct.pack('<f', self._height)             + \
               struct.pack('<f', self._probability)
         return res
     

@@ -91,7 +91,7 @@ class ConfigManager(BaseClass):
                                                             "LEFT_CAMERA_SPECS", 
                                                             "focal_length").strip()
                                                         )
-            msg = f"Read LEFT_CAMERA - focal_length: {self.left_camera_specs.focal_length}."
+            msg = f"Read LEFT_CAMERA - focal_length: {self.left_camera_specs.focal_length}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'focal_length' in section 'LEFT_CAMERA': {e}"
@@ -103,7 +103,7 @@ class ConfigManager(BaseClass):
                                                           "LEFT_CAMERA_SPECS", 
                                                           "pixel_size").strip()
                                                      )
-            msg = f"Read LEFT_CAMERA - pixel_size: {self.left_camera_specs.pixel_size}."
+            msg = f"Read LEFT_CAMERA - pixel_size: {self.left_camera_specs.pixel_size}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'pixel_size' in section 'LEFT_CAMERA': {e}"
@@ -115,7 +115,7 @@ class ConfigManager(BaseClass):
                                                    "LEFT_CAMERA_SPECS", 
                                                    "horizontal_fov").strip()
                                               )
-            msg = f"Read LEFT_CAMERA - horizontal_fov: {self.left_camera_specs.fov}."
+            msg = f"Read LEFT_CAMERA - horizontal_fov: {self.left_camera_specs.fov}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'horizontal_fov' in section 'LEFT_CAMERA': {e}"
@@ -127,7 +127,7 @@ class ConfigManager(BaseClass):
                                                            "RIGHT_CAMERA_SPECS", 
                                                            "focal_length").strip()
                                                       )
-            msg = f"Read RIGHT_CAMERA - focal_length: {self.right_camera_specs.focal_length}."
+            msg = f"Read RIGHT_CAMERA - focal_length: {self.right_camera_specs.focal_length}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'focal_length' in section 'RIGHT_CAMERA': {e}"
@@ -139,7 +139,7 @@ class ConfigManager(BaseClass):
                                                            "RIGHT_CAMERA_SPECS", 
                                                            "pixel_size").strip()
                                                       )
-            msg = f"Read RIGHT_CAMERA - pixel_size: {self.right_camera_specs.pixel_size}."
+            msg = f"Read RIGHT_CAMERA - pixel_size: {self.right_camera_specs.pixel_size}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'pixel_size' in section 'RIGHT_CAMERA': {e}"
@@ -151,7 +151,7 @@ class ConfigManager(BaseClass):
                                                     "RIGHT_CAMERA_SPECS", 
                                                     "horizontal_fov").strip()
                                                )
-            msg = f"Read RIGHT_CAMERA - horizontal_fov: {self.right_camera_specs.fov}."
+            msg = f"Read RIGHT_CAMERA - horizontal_fov: {self.right_camera_specs.fov}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'horizontal_fov' in section 'RIGHT_CAMERA': {e}"
@@ -163,7 +163,7 @@ class ConfigManager(BaseClass):
                                                             "SYSTEM_SETUP", 
                                                             "baseline_distance").strip()
                                                        )
-            msg = f"Read SYSTEM_SETUP - baseline_distance: {self.system_setup.baseline_distance}."
+            msg = f"Read SYSTEM_SETUP - baseline_distance: {self.system_setup.baseline_distance}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'baseline_distance' in section 'SYSTEM_SETUP': {e}"
@@ -176,7 +176,7 @@ class ConfigManager(BaseClass):
                                                         "chessboard_width").strip()
                                                    )
             msg = f"Read CALIBRATION - chessboard_width: " +\
-                  f"{self.calibration.chessboard_width}."
+                  f"{self.calibration.chessboard_width}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'chessboard_width' in section 'CALIBRATION': {e}"
@@ -189,7 +189,7 @@ class ConfigManager(BaseClass):
                                                         "chessboard_height").strip()
                                                     )
             msg = f"Read CALIBRATION - chessboard_height: " +\
-                  f"{self.calibration.chessboard_height}."
+                  f"{self.calibration.chessboard_height}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'chessboard_height' in section 'CALIBRATION': {e}"
@@ -202,7 +202,7 @@ class ConfigManager(BaseClass):
                                                               "chessboard_square_size").strip()
                                                          )
             msg = f"Read CALIBRATION - chessboard_square_size: " +\
-                  f"{self.calibration.chessboard_square_size}."
+                  f"{self.calibration.chessboard_square_size}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'chessboard_square_size' in " +\
@@ -213,16 +213,16 @@ class ConfigManager(BaseClass):
         try:
             value = int(config.get("CALIBRATION", "calibration_mode").strip())
                                                           
-            msg = f"Read CALIBRATION - calibration_mode: {value}."
+            msg = f"Read CALIBRATION - calibration_mode: {value}"
             self.logger.info(msg)
 
             valid_values = CalibrationMode._value2member_map_
             if value not in valid_values:
-                warning_msg = f"Value not valid, accepted values': {valid_values}."
+                warning_msg = f"Value not valid, accepted values': {valid_values}"
                 self.logger.warning(warning_msg)
 
                 value = DEFAULT_CALIBRATION_MODE
-                warning_msg = f"Value set as {value}."
+                warning_msg = f"Value set as {value}"
                 self.logger.warning(warning_msg)
             self.calibration.calibration_mode = CalibrationMode(value)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
@@ -237,7 +237,7 @@ class ConfigManager(BaseClass):
                                                                     .strip())
                                                            )
             msg = f"Read CALIBRATION - save_calibration_images: " +\
-                  f"{self.calibration.save_calibration_images}."
+                  f"{self.calibration.save_calibration_images}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'save_calibration_images' in " +\
@@ -252,7 +252,7 @@ class ConfigManager(BaseClass):
                                                                     .strip())
                                                            )
             msg = f"Read CALIBRATION - save_calibration_params: " +\
-                  f"{self.calibration.save_calibration_params}."
+                  f"{self.calibration.save_calibration_params}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'save_calibration_params' in " +\
@@ -267,7 +267,7 @@ class ConfigManager(BaseClass):
                                                         )
                                                                      
             msg = f"Read CALIBRATION - video_calibration_step: " +\
-                  f"{self.calibration.video_calibration_step}."
+                  f"{self.calibration.video_calibration_step}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'video_calibration_step' in " +\
@@ -282,7 +282,7 @@ class ConfigManager(BaseClass):
                                                                     .strip()
                                                                )
             msg = f"Read CALIBRATION - save_calibration_images_path: " +\
-                  f"{self.calibration.save_calibration_images_path}."
+                  f"{self.calibration.save_calibration_images_path}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'save_calibration_images_path' in " +\
@@ -297,7 +297,7 @@ class ConfigManager(BaseClass):
                                                                     .strip()
                                                                )
             msg = f"Read CALIBRATION - calibration_images_dir_left: " +\
-                  f"{self.calibration.calibration_images_dir_left}."
+                  f"{self.calibration.calibration_images_dir_left}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'calibration_images_dir_left' in " +\
@@ -312,7 +312,7 @@ class ConfigManager(BaseClass):
                                                                     .strip()
                                                                )
             msg = f"Read CALIBRATION - calibration_images_dir_right: " +\
-                  f"{self.calibration.calibration_images_dir_right}."
+                  f"{self.calibration.calibration_images_dir_right}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'calibration_images_dir_right' in " +\
@@ -327,7 +327,7 @@ class ConfigManager(BaseClass):
                                                                     .strip()
                                                          )
             msg = f"Read CALIBRATION - calibration_video_left: " +\
-                  f"{self.calibration.calibration_video_left}."
+                  f"{self.calibration.calibration_video_left}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'calibration_video_left' in " +\
@@ -342,7 +342,7 @@ class ConfigManager(BaseClass):
                                                                     .strip()
                                                           )
             msg = f"Read CALIBRATION - calibration_video_right: " +\
-                  f"{self.calibration.calibration_video_right}."
+                  f"{self.calibration.calibration_video_right}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'calibration_video_right' in " +\
@@ -357,7 +357,7 @@ class ConfigManager(BaseClass):
                                                                     .strip()
                                                                )
             msg = f"Read CALIBRATION - save_calibration_params_path: " +\
-                  f"{self.calibration.save_calibration_params_path}."
+                  f"{self.calibration.save_calibration_params_path}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'save_calibration_params_path' in " +\
@@ -372,7 +372,7 @@ class ConfigManager(BaseClass):
                                                                     .strip()
                                                                )
             msg = f"Read CALIBRATION - load_calibration_params_path: " +\
-                  f"{self.calibration.load_calibration_params_path}."
+                  f"{self.calibration.load_calibration_params_path}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'load_calibration_params_path' in " +\
@@ -386,7 +386,7 @@ class ConfigManager(BaseClass):
                             "num_disparities").strip()
                        )
             
-            msg = f"Read PARAMETERS - num_disparities: {value}."
+            msg = f"Read PARAMETERS - num_disparities: {value}"
             self.logger.info(msg)
 
             if value % 16 != 0:
@@ -410,7 +410,7 @@ class ConfigManager(BaseClass):
                             "block_size").strip()
                        )
                                                                      
-            msg = f"Read PARAMETERS - block_size: {value}."
+            msg = f"Read PARAMETERS - block_size: {value}"
             self.logger.info(msg)
 
             if value % 2 == 0:
@@ -430,7 +430,7 @@ class ConfigManager(BaseClass):
                                                            "gaussian_kernel_size".strip())
                                                       )
                                                                      
-            msg = f"Read PARAMETERS - gaussian_kernel_size: {self.parameters.gaussian_kernel_size}."
+            msg = f"Read PARAMETERS - gaussian_kernel_size: {self.parameters.gaussian_kernel_size}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'gaussian_kernel_size' in section 'PARAMETERS': {e}"
@@ -443,7 +443,7 @@ class ConfigManager(BaseClass):
                               "rectify_alpha").strip()
                          )
             
-            msg = f"Read PARAMETERS - rectify_alpha: {value}."
+            msg = f"Read PARAMETERS - rectify_alpha: {value}"
             self.logger.info(msg)
             
             if MIN_ALPHA > value:
@@ -467,16 +467,16 @@ class ConfigManager(BaseClass):
                             "undistort_method").strip()
                        )
                                                           
-            msg = f"Read PARAMETERS - undistort_method: {value}."
+            msg = f"Read PARAMETERS - undistort_method: {value}"
             self.logger.info(msg)
 
             valid_values = UndistortMethod._value2member_map_
             if value not in valid_values:
-                warning_msg = f"Value not valid, accepted values': {valid_values}."
+                warning_msg = f"Value not valid, accepted values': {valid_values}"
                 self.logger.warning(warning_msg)
 
                 value = DEFAULT_UNDISTORT_METHOD
-                warning_msg = f"Value set as {value}."
+                warning_msg = f"Value set as {value}"
                 self.logger.warning(warning_msg)
             self.parameters.undistort_method = UndistortMethod(value)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
@@ -490,16 +490,16 @@ class ConfigManager(BaseClass):
                             "rectification_mode").strip()
                        )
                                                           
-            msg = f"Read PARAMETERS - rectification_mode: {value}."
+            msg = f"Read PARAMETERS - rectification_mode: {value}"
             self.logger.info(msg)
 
             valid_values = RectificationMode._value2member_map_
             if value not in valid_values:
-                warning_msg = f"Value not valid, accepted values': {valid_values}."
+                warning_msg = f"Value not valid, accepted values': {valid_values}"
                 self.logger.warning(warning_msg)
 
                 value = DEFAULT_RECTIFICATION_MODE
-                warning_msg = f"Value set as {value}."
+                warning_msg = f"Value set as {value}"
                 self.logger.warning(warning_msg)
             self.parameters.rectification_mode = RectificationMode(value)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
@@ -513,7 +513,7 @@ class ConfigManager(BaseClass):
                                               "left_camera_url").strip()
                                          )
                                                                      
-            msg = f"Read STREAM - left_camera_url: {self.stream.left_camera}."
+            msg = f"Read STREAM - left_camera_url: {self.stream.left_camera}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'left_camera_url' in section 'STREAM': {e}"
@@ -526,7 +526,7 @@ class ConfigManager(BaseClass):
                                                "right_camera_url").strip()
                                           )   
                                                                      
-            msg = f"Read STREAM - right_camera_url: {self.stream.right_camera}."
+            msg = f"Read STREAM - right_camera_url: {self.stream.right_camera}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'right_camera_url' in section 'STREAM': {e}"
@@ -539,7 +539,7 @@ class ConfigManager(BaseClass):
                                          "multicast_group").strip()
                                     )
                                                                      
-            msg = f"Read COMMUNICATION_IN - multicast_group: {self.comm_in.group}."
+            msg = f"Read COMMUNICATION_IN - multicast_group: {self.comm_in.group}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'multicast_group' in section 'COMMUNICATION_IN': {e}"
@@ -552,7 +552,7 @@ class ConfigManager(BaseClass):
                                         "multicast_port").strip()
                                    )
 
-            msg = f"Read COMMUNICATION_IN - multicast_port: {self.comm_in.port}."
+            msg = f"Read COMMUNICATION_IN - multicast_port: {self.comm_in.port}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'multicast_port' in section 'COMMUNICATION_IN': {e}"
@@ -565,7 +565,7 @@ class ConfigManager(BaseClass):
                                          "multicast_iface").strip()
                                     )
                                                                      
-            msg = f"Read COMMUNICATION_IN - multicast_iface: {self.comm_in.iface}."
+            msg = f"Read COMMUNICATION_IN - multicast_iface: {self.comm_in.iface}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'multicast_iface' in section 'COMMUNICATION_IN': {e}"
@@ -578,7 +578,7 @@ class ConfigManager(BaseClass):
                                        "multicast_ttl").strip()
                                    )
 
-            msg = f"Read COMMUNICATION_IN - multicast_ttl: {self.comm_in.ttl}."
+            msg = f"Read COMMUNICATION_IN - multicast_ttl: {self.comm_in.ttl}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'multicast_ttl' in section 'COMMUNICATION_IN': {e}"
@@ -586,12 +586,12 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.comm_in.group = str(config.get(
-                                         "COMMUNICATION_OUT", 
-                                         "multicast_group").strip()
-                                    )
-                                                                     
-            msg = f"Read COMMUNICATION_OUT - multicast_group: {self.comm_in.group}."
+            self.comm_out.group = str(config.get(
+                                          "COMMUNICATION_OUT",
+                                          "multicast_group").strip()
+                                     )
+
+            msg = f"Read COMMUNICATION_OUT - multicast_group: {self.comm_out.group}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'multicast_group' in section 'COMMUNICATION_OUT': {e}"
@@ -599,12 +599,12 @@ class ConfigManager(BaseClass):
             res = False
         
         try:
-            self.comm_in.port = int(config.get(
-                                        "COMMUNICATION_OUT", 
-                                        "multicast_port").strip()
-                                   )
+            self.comm_out.port = int(config.get(
+                                         "COMMUNICATION_OUT", 
+                                         "multicast_port").strip()
+                                    )
 
-            msg = f"Read COMMUNICATION_OUT - multicast_port: {self.comm_in.port}."
+            msg = f"Read COMMUNICATION_OUT - multicast_port: {self.comm_out.port}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'multicast_port' in section 'COMMUNICATION_OUT': {e}"
@@ -612,12 +612,12 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.comm_in.iface = str(config.get(
-                                         "COMMUNICATION_OUT", 
-                                         "multicast_iface").strip()
-                                    )
+            self.comm_out.iface = str(config.get(
+                                          "COMMUNICATION_OUT", 
+                                          "multicast_iface").strip()
+                                     )
                                                                      
-            msg = f"Read COMMUNICATION_OUT - multicast_iface: {self.comm_in.iface}."
+            msg = f"Read COMMUNICATION_OUT - multicast_iface: {self.comm_out.iface}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'multicast_iface' in section 'COMMUNICATION_OUT': {e}"
@@ -625,20 +625,33 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.comm_in.ttl = int(config.get(
-                                       "COMMUNICATION_OUT", 
-                                       "multicast_ttl").strip()
-                                   )
+            self.comm_out.ttl = int(config.get(
+                                        "COMMUNICATION_OUT", 
+                                        "multicast_ttl").strip()
+                                    )
 
-            msg = f"Read COMMUNICATION_OUT - multicast_ttl: {self.comm_in.ttl}."
+            msg = f"Read COMMUNICATION_OUT - multicast_ttl: {self.comm_out.ttl}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'multicast_ttl' in section 'COMMUNICATION_OUT': {e}"
             self.logger.warning(warning_msg)
             res = False
 
+        try:
+            self.comm_out.frequency = float(config.get(
+                                                "COMMUNICATION_OUT", 
+                                                "send_frequency").strip()
+                                           )
 
-        self.logger.info(f"Finished reading configuration, all params read successfully: {res}.")
+            msg = f"Read COMMUNICATION_OUT - send_frequency: {self.comm_out.frequency}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'send_frequency' in section 'COMMUNICATION_OUT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+
+        self.logger.info(f"Finished reading configuration, all params read successfully: {res}")
         return res
         
         

@@ -5,6 +5,7 @@ Implements main class.
 from modules.NavDataEstimator.src.baseclass import BaseClass
 from modules.NavDataEstimator.src.configmanager import ConfigManager
 from modules.NavDataEstimator.src.distanceEstimator.distancecalculator import DistanceCalculator
+from modules.NavDataEstimator.src.multicastmanager import MulticastManager
 
 
 __author__ = "EnriqueMoran"
@@ -24,12 +25,11 @@ class NavDataEstimator(BaseClass):
 
     def __init__(self, filename:str, format:str, level:str, config_path:str):
         super().__init__(filename, format, level)
-        self.config_parser = ConfigManager(filename=filename, 
-                                           format=format, 
-                                           level=level, 
+        self.config_parser = ConfigManager(filename=filename, format=format, level=level, 
                                            config_path=config_path)
         
-        self.distance_calculator = DistanceCalculator(filename=filename, 
-                                                      format=format, 
-                                                      level=level, 
+        self.distance_calculator = DistanceCalculator(filename=filename, format=format, level=level, 
                                                       config_path=config_path)
+        
+        self.multicast_manager = MulticastManager(filename=filename, format=format, level=level, 
+                                                  config_path=config_path)

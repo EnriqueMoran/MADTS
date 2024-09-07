@@ -31,9 +31,9 @@ class NavData(BaseClass):
         distance -> Type: Float | Num Bytes: 4 | Endianness: Little-endian
         bearing  -> Type: Int   | Num Bytes: 2 | Endianness: Big-endian
         """
-        res = struct.pack('>B', self._message_type) + \
-              struct.pack('>B', self._id)           + \
-              struct.pack('<f', self._distance)     + \
+        res = struct.pack('>B', self._message_type.value) + \
+              struct.pack('>B', self._id)                 + \
+              struct.pack('<f', self._distance)           + \
               struct.pack('>H', int(self._bearing))
         return res
 
