@@ -4,6 +4,8 @@ Implements base class for NavDataEstimator classes.
 
 import logging
 
+from modules.common.comms.definitions import MessageType
+
 
 __author__ = "EnriqueMoran"
 

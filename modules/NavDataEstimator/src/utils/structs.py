@@ -25,7 +25,7 @@ class CalibrationSpecs:
     calibration_mode: CalibrationMode = None
     save_calibration_images: bool     = None
     save_calibration_params: bool     = None
-    video_calibration_step: int       = None
+    video_calibration_step:  int      = None
     save_calibration_images_path: str = None
     calibration_images_dir_left:  str = None
     calibration_images_dir_right: str = None
@@ -43,3 +43,17 @@ class Parameters:
     rectify_alpha: float                  = None
     undistort_method:   UndistortMethod   = None
     rectification_mode: RectificationMode = None
+
+
+@dataclass
+class Stream:
+    left_camera:  str = None
+    right_camera: str = None
+
+
+@dataclass
+class Communication:
+    group: str = None
+    port:  int = None
+    iface: str = None
+    ttl:   int = None
