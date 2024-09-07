@@ -534,6 +534,30 @@ class ConfigManager(BaseClass):
             res = False
         
         try:
+            self.stream.record = bool(int(config.get(
+                                              "STREAM", 
+                                              "record_stream").strip())
+                                     )
+            msg = f"Read STREAM - record_stream: {self.stream.record}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'record_stream' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.stream.record_path = str(config.get(
+                                              "STREAM", 
+                                              "record_filepath").strip()
+                                         )
+            msg = f"Read STREAM - record_filepath: {self.stream.record_path}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'record_filepath' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
             self.comm_in.group = str(config.get(
                                          "COMMUNICATION_IN", 
                                          "multicast_group").strip()

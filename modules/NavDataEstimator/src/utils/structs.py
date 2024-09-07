@@ -49,7 +49,9 @@ class Parameters:
 class Stream:
     left_camera:  str = None
     right_camera: str = None
-
+    record_path:  str = None
+    record: bool = None
+    
 
 @dataclass
 class Communication:

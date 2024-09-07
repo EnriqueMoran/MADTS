@@ -19,7 +19,7 @@ __author__ = "EnriqueMoran"
 
 class MainApp:
     """
-    This class executes the main loop of NavDataEstimator module.
+    TBD
 
     Args:
         - args (argparse.Namespace): Arguments to update loggers (Main App) parameters.

@@ -39,7 +39,6 @@ class MulticastManager(BaseClass):
         self._comms_in_logger  = None
         self._comms_out_logger = None
         self.set_loggers(filename, format, level)
-        self._start_communications()
 
 
     def __del__(self):
@@ -159,7 +158,7 @@ class MulticastManager(BaseClass):
         return unpacked_data
         
     
-    def _start_communications(self):
+    def start_communications(self):
         """
         Start threads for handling input and output communications.
         """
