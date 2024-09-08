@@ -14,6 +14,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
+from modules.common.comms.navdata import NavData
 from modules.NavDataEstimator.src.baseclass import BaseClass
 from modules.NavDataEstimator.src.navdataestimator import NavDataEstimator
 from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_depth_map
@@ -117,7 +118,7 @@ class MainApp(BaseClass):
         distance_calculator = nav_data_estimator.distance_calculator
         config_parser = nav_data_estimator.distance_calculator.config_parser
 
-        num_disp   = distance_calculator.config_parser.parameters.num_disparities
+        num_disp   = distance_calculator.config_parser.parameters.num_disparities    # TODO CHECK not used
         block_size = distance_calculator.config_parser.parameters.block_size
         max_disp   = MAX_DISPARITY
 
@@ -180,12 +181,26 @@ class MainApp(BaseClass):
             compute_time = 0
             frame_count  = 0
             while stream_left.isOpened() and stream_right.isOpened():
+                detection_buffer = nav_data_estimator.multicast_manager.detection_buffer
+                if len(detection_buffer) == 0:
+                    continue    # No detections to process
+                
+                detection = detection_buffer.popleft()
+                self.logger.debug(f"Processing detection:")
+                self.logger.debug(f"    x: {detection.x}")
+                self.logger.debug(f"    y: {detection.y}")
+                self.logger.debug(f"    width: {detection.width}")
+                self.logger.debug(f"    height: {detection.x}")
+                self.logger.debug(f"    probability: {detection.probability}")
+
                 ret_right, frame_right = stream_right.read()
                 ret_left, frame_left   = stream_left.read()
                 frame_count += 1
             
                 if not ret_left or not ret_right:
                     break
+                
+                start_time_sgbm = time.time()
 
                 if len(frame_left.shape) == 3:
                     frame_left  = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
@@ -198,7 +213,7 @@ class MainApp(BaseClass):
                                                cv2.INTER_LINEAR)
                 rect_left, rect_right = future_left.result(), future_right.result()
 
-                start_time_sgbm = time.time()
+                
                 stereo_sgbm = cv2.StereoSGBM_create(0, max_disp, block_size, uniquenessRatio=10,
                                                     speckleWindowSize=100, speckleRange=32,
                                                     disp12MaxDiff=1,
@@ -206,6 +221,24 @@ class MainApp(BaseClass):
                 dispmap_sgbm = stereo_sgbm.compute(rect_left, rect_right)
                 dispmap_sgbm = distance_calculator.apply_disparity_filter(dispmap_sgbm, stereo_sgbm,
                                                                           rect_left, rect_right)
+                
+                detection_x = detection.x * frame_size[0]
+                detection_y = detection.y * frame_size[1]
+                distance = dispmap_sgbm[detection_y, detection_x]
+                self.logger.debug(f"Detection {(detection_x, detection_y)} distance: {distance}")
+
+                nav_data_msg = NavData()
+                nav_data_msg.id = 0           # TODO Calculate
+                nav_data_msg.distance = distance
+                nav_data_msg.bearing  = 90    # TODO Calculate
+
+                self.logger.debug(f"NavData message to send:")
+                self.logger.debug(f"    id: {nav_data_msg.id}")
+                self.logger.debug(f"    distance: {nav_data_msg.distance}")
+                self.logger.debug(f"    bearing: {nav_data_msg.bearing}")
+
+                nav_data_estimator.multicast_manager.send_nav_data_async(nav_data_msg)
+
                 elapsed_time_sgbm = time.time() - start_time_sgbm
                 compute_time += elapsed_time_sgbm
 
