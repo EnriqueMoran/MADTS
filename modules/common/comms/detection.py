@@ -29,6 +29,15 @@ class Detection(BaseClass):
         self._height = 0
         self._probability = 0
         self._message_type = MessageType.DETECTION
+    
+    
+    def __repr__(self):
+        return self.__str__()
+
+
+    def __str__(self):
+        return f"x: {self.x}, y: {self.y}, width: {self.width}, height: {self.height}, " +\
+               f"prob: {self.probability}"
 
 
     def pack(self):

@@ -5,8 +5,10 @@ Receive detected vessel(s) position on picture, estimate its distance and send i
 import argparse
 import concurrent.futures
 import cv2
+import shutil
 import os
 import sys
+import tempfile
 import time
 
 from datetime import datetime
@@ -17,8 +19,9 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 from modules.common.comms.navdata import NavData
 from modules.NavDataEstimator.src.baseclass import BaseClass
 from modules.NavDataEstimator.src.navdataestimator import NavDataEstimator
-from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_depth_map
+from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_depth_map, draw_distance
 from modules.NavDataEstimator.src.utils.globals import MAX_DISPARITY
+from modules.NavDataEstimator.src.utils.streamconsumer import StreamConsumer
 
 
 __author__ = "EnriqueMoran"
@@ -81,7 +84,7 @@ class MainApp(BaseClass):
                 message = f"Warning: logging file directory {log_path} not found. " +\
                           f"Defaulting to {self.log_filepath}."
                 print(message)
-        
+
         if not args.keep_logs:
             if os.path.exists(self.log_filepath):
                 with open(self.log_filepath, 'w'):
@@ -99,43 +102,7 @@ class MainApp(BaseClass):
         return res
     
 
-    def main(self):
-        print("Running Distance estimator script...")
-        self.logger.info(f"Running Distance estimator script...")
-        nav_data_estimator = NavDataEstimator(filename=self.log_filepath,
-                                              format=self.log_format,
-                                              level=self.log_level,
-                                              config_path=self.config_filepath)
-        
-        params = nav_data_estimator.distance_calculator.calibrator.load_calibration()
-        self.logger.info(f"Calibration parameters loaded successfully!")
-
-        err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = \
-        params["err"], params["Kl"], params["Dl"], params["Kr"], params["Dr"], params["R"], \
-        params["T"], params["E"], params["F"], params["pattern_points"], params["left_pts"], \
-        params["right_pts"]
-
-        distance_calculator = nav_data_estimator.distance_calculator
-        config_parser = nav_data_estimator.distance_calculator.config_parser
-
-        num_disp   = distance_calculator.config_parser.parameters.num_disparities    # TODO CHECK not used
-        block_size = distance_calculator.config_parser.parameters.block_size
-        max_disp   = MAX_DISPARITY
-
-        stream_left  = cv2.VideoCapture(config_parser.stream.left_camera)
-        stream_right = cv2.VideoCapture(config_parser.stream.right_camera)
-        recording    = None
-        
-        self.logger.info(f"Waiting for left and right camera streams...")
-        while not (stream_left.isOpened() and stream_right.isOpened()):
-            if not stream_left.isOpened():
-                stream_left = cv2.VideoCapture(config_parser.stream.left_camera)
-            if not stream_right.isOpened():
-                stream_right = cv2.VideoCapture(config_parser.stream.right_camera)
-            cv2.waitKey(100)
-
-        self.logger.info(f"Obtaining frame size...")
-        frame_size = None
+    def _get_frame_size(self, stream_left, stream_right):
         while stream_left.isOpened() and stream_right.isOpened():
             # Obtain frame size by reading one frame from both streamings
             ret_right, frame_right = stream_right.read()
@@ -153,33 +120,88 @@ class MainApp(BaseClass):
                 frame_height = min(frame_left.shape[0], frame_right[0])
             frame_size = (frame_width, frame_height)
             self.logger.info(f"Frame size: {frame_size}")
-            break
+            return frame_size
+        
+        return None
+    
 
-        if config_parser.stream.record:
-            fps_left  = stream_left.get(cv2.CAP_PROP_FPS)
-            fps_right = stream_right.get(cv2.CAP_PROP_FPS)
-            fps       = min(fps_left, fps_right)
-            codec     = cv2.VideoWriter_fourcc(*'XVID')
-            recording = cv2.VideoWriter(config_parser.stream.record_path, codec, fps, frame_size)
+    def _get_streams(self, config_parser):
+        stream_left  = StreamConsumer(config_parser.stream.left_camera)
+        stream_right = StreamConsumer(config_parser.stream.right_camera)
 
+        # Wait until streams are available
+        while not (stream_left.isOpened() and stream_right.isOpened()):
+            if not stream_left.isOpened():
+                stream_left  = StreamConsumer(config_parser.stream.left_camera)
+            if not stream_right.isOpened():
+                stream_right = StreamConsumer(config_parser.stream.right_camera)
+            cv2.waitKey(100)
+
+        return stream_left, stream_right
+
+
+    def main(self):
+        info_msg = f"Running Distance estimator script..."
+        print(info_msg)
+        self.logger.info(info_msg)
+        nav_data_estimator = NavDataEstimator(filename=self.log_filepath,
+                                              format=self.log_format,
+                                              level=self.log_level,
+                                              config_path=self.config_filepath)
+        
+        params = nav_data_estimator.distance_calculator.calibrator.load_calibration()
+        info_msg = f"Calibration parameters loaded successfully!"
+        print(info_msg)
+        self.logger.info(info_msg)
+
+        Kl, Dl = params["Kl"], params["Dl"],
+        Kr, Dr = params["Kr"], params["Dr"]
+        R, T   = params["R"], params["T"]
+
+        distance_calculator = nav_data_estimator.distance_calculator
+        config_parser = nav_data_estimator.distance_calculator.config_parser
+
+        nav_data_estimator.multicast_manager.start_communications()
+
+        info_msg = f"Waiting for left and right camera streams..."
+        print(info_msg)
+        self.logger.info(info_msg)
+
+        get_stream_start = time.time()
+        stream_left, stream_right = self._get_streams(config_parser)
+        get_stream_elapsed = time.time() - get_stream_start
+        self.logger.debug(f"Time taken to connect to streams: {get_stream_elapsed:.2f} secs.")
+        
+        self.logger.info(f"Obtaining frame size...")
+
+        frame_size = self._get_frame_size(stream_left, stream_right)
+        
         precomputed_params = distance_calculator.precompute_rectification_maps(Kl, Dl, Kr, Dr, 
                                                                                frame_size, R, T)
         
-        xmap_l, ymap_l, xmap_r, ymap_r, roi_l, roi_r = precomputed_params["xmap_l"], \
+        xmap_l, ymap_l, xmap_r, ymap_r, roi_l, Q = precomputed_params["xmap_l"], \
         precomputed_params["ymap_l"], precomputed_params["xmap_r"], precomputed_params["ymap_r"], \
-        precomputed_params["roi_l"], precomputed_params["roi_r"]
+        precomputed_params["roi_l"], precomputed_params["Q"]
 
         self.logger.info(f"Precomputed params loaded!")
-        self.logger.debug(f"    xmap_l: {xmap_l}")
-        self.logger.debug(f"    ymap_l: {ymap_l}")
-        self.logger.debug(f"    xmap_r: {xmap_r}")
-        self.logger.debug(f"    ymap_r: {ymap_r}")
-        self.logger.debug(f"    roi_l: {roi_l}")
-        self.logger.debug(f"    roi_r: {roi_r}")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            info_msg = f"Processing streams..."
+            print(info_msg)
+            self.logger.info(info_msg)
+
+            temp_dir = None    # Temp dir to store recording frames (if enabled)
+            if config_parser.stream.record:
+                temp_dir = tempfile.mkdtemp()
+                self.logger.debug(f"Using tmp dir: {temp_dir}")
+
             compute_time = 0
             frame_count  = 0
+
+            num_disp   = distance_calculator.config_parser.parameters.num_disparities    # TODO CHECK not used
+            block_size = distance_calculator.config_parser.parameters.block_size
+            max_disp   = MAX_DISPARITY
+
             while stream_left.isOpened() and stream_right.isOpened():
                 detection_buffer = nav_data_estimator.multicast_manager.detection_buffer
                 if len(detection_buffer) == 0:
@@ -193,38 +215,52 @@ class MainApp(BaseClass):
                 self.logger.debug(f"    height: {detection.x}")
                 self.logger.debug(f"    probability: {detection.probability}")
 
+                remap_frame_start = time.time()
                 ret_right, frame_right = stream_right.read()
                 ret_left, frame_left   = stream_left.read()
                 frame_count += 1
             
                 if not ret_left or not ret_right:
                     break
-                
-                start_time_sgbm = time.time()
 
-                if len(frame_left.shape) == 3:
-                    frame_left  = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
-                if len(frame_right.shape) == 3:
-                    frame_right = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)
+                computation_start_time = time.time()
 
-                future_left  = executor.submit(cv2.remap, frame_left, xmap_l, ymap_l, 
-                                               cv2.INTER_LINEAR)
-                future_right = executor.submit(cv2.remap, frame_right, xmap_r, ymap_r, 
-                                               cv2.INTER_LINEAR)
+                frame_left_gray  = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
+                frame_right_gray = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)
+
+                future_left  = executor.submit(cv2.remap, frame_left_gray, xmap_l, ymap_l, 
+                                                cv2.INTER_LINEAR)
+                future_right = executor.submit(cv2.remap, frame_right_gray, xmap_r, ymap_r, 
+                                                cv2.INTER_LINEAR)
+
                 rect_left, rect_right = future_left.result(), future_right.result()
+                remap_frames_elapsed = time.time() - remap_frame_start
+                self.logger.debug(f"Time taken to remap frames: {remap_frames_elapsed:.2f} secs.")
 
-                
                 stereo_sgbm = cv2.StereoSGBM_create(0, max_disp, block_size, uniquenessRatio=10,
                                                     speckleWindowSize=100, speckleRange=32,
                                                     disp12MaxDiff=1,
                                                     mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY)
-                dispmap_sgbm = stereo_sgbm.compute(rect_left, rect_right)
-                dispmap_sgbm = distance_calculator.apply_disparity_filter(dispmap_sgbm, stereo_sgbm,
-                                                                          rect_left, rect_right)
                 
-                detection_x = detection.x * frame_size[0]
-                detection_y = detection.y * frame_size[1]
-                distance = dispmap_sgbm[detection_y, detection_x]
+                stereo_compute_start = time.time()
+                dispmap_comp = stereo_sgbm.compute(rect_left, rect_right)
+                dispmap_sgbm = distance_calculator.apply_disparity_filter(dispmap_comp, stereo_sgbm,
+                                                                            rect_left, rect_right)
+                stereo_elapsed = time.time() - stereo_compute_start
+                self.logger.debug(f"Time taken to compute stereo SGBM: {stereo_elapsed:.2f} secs.")
+                
+                homography_start = time.time()
+                H = distance_calculator.get_homography(rect_left, frame_left)
+                aligned_map = cv2.warpPerspective(dispmap_sgbm, H, (frame_left.shape[1], 
+                                                                    frame_left.shape[0]))
+                homography_elapsed = time.time() - homography_start
+                msg = f"Time taken to compute homography matrix: {homography_elapsed:.2f} secs."
+                self.logger.debug(msg)
+                
+                
+                detection_x = int(round(detection.x * frame_size[0]))
+                detection_y = int(round(detection.y * frame_size[1]))
+                distance = float(aligned_map[detection_y, detection_x])
                 self.logger.debug(f"Detection {(detection_x, detection_y)} distance: {distance}")
 
                 nav_data_msg = NavData()
@@ -239,24 +275,58 @@ class MainApp(BaseClass):
 
                 nav_data_estimator.multicast_manager.send_nav_data_async(nav_data_msg)
 
-                elapsed_time_sgbm = time.time() - start_time_sgbm
-                compute_time += elapsed_time_sgbm
+                computation_elapsed_time = time.time() - computation_start_time
+                self.logger.debug(f"Computation time (loop): {computation_elapsed_time:.2f} secs.")
 
-                if frame_count % 30 == 0:
-                    compute_time_avg = compute_time / frame_count
-                    self.logger.debug(f"Computation time: {compute_time_avg:.3f} seconds")
+                compute_time += computation_elapsed_time
+                compute_time_avg = compute_time / frame_count
+                self.logger.debug(f"Computation time (avg): {compute_time_avg:.2f} secs.")
 
-                if recording:
-                    rect_left_roi    = crop_roi(rect_left, roi_l)
-                    dispmap_sgbm_roi = crop_roi(dispmap_sgbm, roi_l)
-                    draw_depth_sgbm  = draw_depth_map(rect_left_roi, dispmap_sgbm_roi)
-                    recording.write(draw_depth_sgbm)
-                
+                if config_parser.stream.record:
+                    record_start = time.time()
+                    aligned_norm = distance_calculator.normalize_depth_map(aligned_map)
+                    frame_roi = crop_roi(frame_left_gray, roi_l)
+                    aligned_roi   = crop_roi(aligned_norm, roi_l)
+                    
+                    draw_depth_sgbm = draw_depth_map(frame_roi, aligned_roi)         
+                    dist_map = draw_distance(draw_depth_sgbm, aligned_roi, 
+                                             [(detection_x, detection_y)])
+                    
+                    cv2.imwrite(f"{temp_dir}/frame_{frame_count}.png", dist_map)
+                    cv2.waitKey(1)
+                    record_elapsed = time.time() - record_start
+                    self.logger.debug(f"Time taken to record frame: {record_elapsed:.2f} secs.")
+            
             stream_left.release()
             stream_right.release()
-            if recording:
+            if config_parser.stream.record:
+                record_dir = os.path.dirname(config_parser.stream.record_path)
+                if not os.path.exists(record_dir):
+                    os.makedirs(record_dir)
+
+                image_files = sorted(os.listdir(temp_dir))
+                if len(image_files) > 0:
+                    first_img_file = image_files[0]
+                    first_img_path = os.path.join(temp_dir, first_img_file)
+                    first_img = cv2.imread(first_img_path)
+
+                    if first_img is not None:
+                        frame_height, frame_width, _ = first_img.shape
+                        frame_size = (frame_width, frame_height)
+
+                fps   = 1
+                codec = cv2.VideoWriter_fourcc(*'FMP4')
+                recording = cv2.VideoWriter(config_parser.stream.record_path, codec, fps, frame_size)
+
+                for img_file in sorted(os.listdir(temp_dir)):
+                    img_path = os.path.join(temp_dir, img_file)
+                    img = cv2.imread(img_path)
+                    recording.write(img)
+                shutil.rmtree(temp_dir)
                 recording.release()
-            self.logger.info(f"Streamings are over!")
+            info_msg = f"Streamings are over!"
+            print(info_msg)
+            self.logger.info(info_msg)
             return
         
 

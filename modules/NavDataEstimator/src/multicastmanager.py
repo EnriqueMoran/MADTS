@@ -38,8 +38,7 @@ class MulticastManager(BaseClass):
         self.in_sock  = None
         self.out_sock = None
         self.running  = False    # Is receive data thread running?
-        self.in_thread  = None
-        self.out_thread = None
+        self.input_thread = None
         self._comms_in_logger  = None
         self._comms_out_logger = None
         self.set_loggers(filename, format, level)
@@ -177,7 +176,7 @@ class MulticastManager(BaseClass):
         """
         self._create_connections()
         self.running = True
-        self.input_thread = threading.Thread(target=self.receive_loop, daemon=False)
+        self.input_thread = threading.Thread(target=self.receive_loop, daemon=True)
         self.input_thread.start()
         self.logger.debug(f"Input communication thread running...")
     
@@ -219,8 +218,8 @@ class MulticastManager(BaseClass):
 
                     self.detection_buffer.append(detection)
                     msg = f"Detection added to buffer. Len: {len(self.detection_buffer)}"
-                    self.logger.debug(msg)
+                    self._comms_in_logger.debug(msg)
                     msg = f"Detection buffer: {self.detection_buffer}"
-                    self.logger.debug(msg)
+                    self._comms_in_logger.debug(msg)
             except socket.error as e:
-                self.logger.error(f"Socket error: {str(e)}")
+                self._comms_in_logger.error(f"Socket error: {str(e)}")

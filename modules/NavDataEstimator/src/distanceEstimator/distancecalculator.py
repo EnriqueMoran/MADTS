@@ -45,11 +45,12 @@ class DistanceCalculator(BaseClass):
         xmap_r, ymap_r = cv2.initUndistortRectifyMap(Kr, Dr, Rr, Pr, image_size, cv2.CV_32FC1)
         res = {
                 "xmap_l": xmap_l,
-                "ymap_l":  ymap_l,
-                "xmap_r":  xmap_r,
-                "ymap_r":  ymap_r,
+                "ymap_l": ymap_l,
+                "xmap_r": xmap_r,
+                "ymap_r": ymap_r,
                 "roi_l":  roi_l,
-                "roi_r": roi_r
+                "roi_r":  roi_r,
+                "Q": Q
               }
         return res
 
@@ -210,7 +211,7 @@ class DistanceCalculator(BaseClass):
                         xmap_inv[y, x] = j
                         ymap_inv[y, x] = i
 
-            undistorted_image  = cv2.remap(image, xmap_inv, ymap_inv, cv2.INTER_LINEAR)
+            undistorted_image = cv2.remap(image, xmap_inv, ymap_inv, cv2.INTER_LINEAR)
             
         elif self.rectification_mode == RectificationMode.UNCALIBRATED_SYSTEM:
             H = kwargs.get('H')
@@ -327,4 +328,21 @@ class DistanceCalculator(BaseClass):
         return frame_with_distances
 
         
-    
+    def get_homography(self, depth_map, image):
+        """
+        TBD
+        """
+        orb = cv2.ORB_create()
+        kp1, des1 = orb.detectAndCompute(depth_map, None)
+        kp2, des2 = orb.detectAndCompute(image, None)
+
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        matches = bf.match(des1, des2)
+
+        matches = sorted(matches, key=lambda x: x.distance)
+
+        src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+
+        H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+        return H
