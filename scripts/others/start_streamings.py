@@ -151,7 +151,7 @@ if __name__ == "__main__":
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
 
-    config_filepath = f"./modules/VideoSynchronizer/cfg/config.ini"
+    config_filepath = f"./modules/VideoSynchronizer/cfg/config_prototype.ini"
     
     app = MainApp(gopro_filepath=gopro_log, log_filepath=log_filepath, log_format=log_format,
                   log_level=log_level, config_filepath=config_filepath, args=args)
