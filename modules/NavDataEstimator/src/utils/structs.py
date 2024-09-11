@@ -51,6 +51,7 @@ class Stream:
     right_camera: str = None
     record_path:  str = None
     record: bool = None
+    scale:float  = None
     
 
 @dataclass
