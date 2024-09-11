@@ -121,9 +121,9 @@ class MainApp(BaseClass):
             frame_size = (frame_width, frame_height)
             self.logger.info(f"Frame size: {frame_size}")
             return frame_size
-        
+
         return None
-    
+
 
     def _get_streams(self, config_parser):
         stream_left  = StreamConsumer(config_parser.stream.left_camera)
@@ -156,6 +156,7 @@ class MainApp(BaseClass):
 
         distance_calculator = nav_data_estimator.distance_calculator
         config_parser = nav_data_estimator.distance_calculator.config_parser
+        scale = nav_data_estimator.config_parser.stream.scale
 
         nav_data_estimator.multicast_manager.start_communications()
 
@@ -171,6 +172,7 @@ class MainApp(BaseClass):
         self.logger.info(f"Obtaining frame size...")
 
         frame_size = self._get_frame_size(stream_left, stream_right)
+        frame_size = (int(frame_size[0] * scale), int(frame_size[1] * scale))
         
         precomputed_params = distance_calculator.precompute_rectification_maps(Kl, Dl, Kr, Dr, 
                                                                                frame_size, R, T)
@@ -222,6 +224,9 @@ class MainApp(BaseClass):
                     break
 
                 computation_start_time = time.time()
+
+                frame_right = cv2.resize(frame_right, None, fx=scale, fy=scale)
+                frame_left  = cv2.resize(frame_left, None, fx=scale, fy=scale)
 
                 frame_left_gray  = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
                 frame_right_gray = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)

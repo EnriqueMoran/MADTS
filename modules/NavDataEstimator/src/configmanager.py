@@ -571,10 +571,10 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.stream.max_detections = float(config.get(
-                                                   "STREAM", 
-                                                   "max_detections").strip()
-                                              )   
+            self.stream.max_detections = int(config.get(
+                                                 "STREAM", 
+                                                 "max_detections").strip()
+                                            )   
                                                                      
             msg = f"Read STREAM - max_detections: {self.stream.max_detections}"
             self.logger.info(msg)
