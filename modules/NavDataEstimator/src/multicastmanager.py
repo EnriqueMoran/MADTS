@@ -42,7 +42,7 @@ class MulticastManager(BaseClass):
         self._comms_in_logger  = None
         self._comms_out_logger = None
         self.set_loggers(filename, format, level)
-        self.detection_buffer = deque(maxlen=5)
+        self.detection_buffer = deque(maxlen=self.config_parser.stream.max_detections)
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
 
 

@@ -170,4 +170,5 @@ cython_debug/
 *.avi
 **/thesis/
 *.mp4
-prototype/*modules/VideoSynchronizer/cfg/config_prototype.ini
+prototype/*
+modules/VideoSynchronizer/cfg/config_prototype.ini

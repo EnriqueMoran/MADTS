@@ -198,17 +198,20 @@ class MainApp(BaseClass):
             max_disp   = MAX_DISPARITY
 
             while stream_left.isOpened() and stream_right.isOpened():
+                detection_list = []
                 detection_buffer = nav_data_estimator.multicast_manager.detection_buffer
                 if len(detection_buffer) == 0:
                     continue    # No detections to process
                 
-                detection = detection_buffer.popleft()
-                self.logger.debug(f"Processing detection:")
-                self.logger.debug(f"    x: {detection.x}")
-                self.logger.debug(f"    y: {detection.y}")
-                self.logger.debug(f"    width: {detection.width}")
-                self.logger.debug(f"    height: {detection.x}")
-                self.logger.debug(f"    probability: {detection.probability}")
+                while detection_buffer:
+                    detection = detection_buffer.popleft()
+                    detection_list.append(detection)
+                    self.logger.debug(f"Processing detection:")
+                    self.logger.debug(f"    x: {detection.x}")
+                    self.logger.debug(f"    y: {detection.y}")
+                    self.logger.debug(f"    width: {detection.width}")
+                    self.logger.debug(f"    height: {detection.x}")
+                    self.logger.debug(f"    probability: {detection.probability}")
 
                 remap_frame_start = time.time()
                 ret_right, frame_right = stream_right.read()
@@ -252,23 +255,23 @@ class MainApp(BaseClass):
                 msg = f"Time taken to compute homography matrix: {homography_elapsed:.2f} secs."
                 self.logger.debug(msg)
                 
-                
-                detection_x = int(round(detection.x * frame_size[0]))
-                detection_y = int(round(detection.y * frame_size[1]))
-                distance = float(aligned_map[detection_y, detection_x])
-                self.logger.debug(f"Detection {(detection_x, detection_y)} distance: {distance}")
+                for detection in detection_list:
+                    detection_x = int(round(detection.x * frame_size[0]))
+                    detection_y = int(round(detection.y * frame_size[1]))
+                    distance = float(aligned_map[detection_y, detection_x])
+                    self.logger.debug(f"Detection {(detection_x, detection_y)} distance: {distance}")
 
-                nav_data_msg = NavData()
-                nav_data_msg.id = 0           # TODO Calculate
-                nav_data_msg.distance = distance
-                nav_data_msg.bearing  = 90    # TODO Calculate
+                    nav_data_msg = NavData()
+                    nav_data_msg.id = 0           # TODO Calculate
+                    nav_data_msg.distance = distance
+                    nav_data_msg.bearing  = 90    # TODO Calculate
 
-                self.logger.debug(f"NavData message to send:")
-                self.logger.debug(f"    id: {nav_data_msg.id}")
-                self.logger.debug(f"    distance: {nav_data_msg.distance}")
-                self.logger.debug(f"    bearing: {nav_data_msg.bearing}")
+                    self.logger.debug(f"NavData message to send:")
+                    self.logger.debug(f"    id: {nav_data_msg.id}")
+                    self.logger.debug(f"    distance: {nav_data_msg.distance}")
+                    self.logger.debug(f"    bearing: {nav_data_msg.bearing}")
 
-                nav_data_estimator.multicast_manager.send_nav_data_async(nav_data_msg)
+                    nav_data_estimator.multicast_manager.send_nav_data_async(nav_data_msg)
 
                 computation_elapsed_time = time.time() - computation_start_time
                 self.logger.debug(f"Computation time (loop): {computation_elapsed_time:.2f} secs.")
@@ -280,12 +283,18 @@ class MainApp(BaseClass):
                 if config_parser.stream.record:
                     record_start = time.time()
                     aligned_norm = distance_calculator.normalize_depth_map(aligned_map)
-                    frame_roi = crop_roi(frame_left_gray, roi_l)
-                    aligned_roi   = crop_roi(aligned_norm, roi_l)
                     
-                    draw_depth_sgbm = draw_depth_map(frame_roi, aligned_roi)         
-                    dist_map = draw_distance(draw_depth_sgbm, aligned_roi, 
-                                             [(detection_x, detection_y)])
+                    draw_depth_sgbm = draw_depth_map(frame_left, aligned_norm)
+
+                    # TODO: Take detection prob into account, correlate same detection points
+                    detection_points = []
+                    for detection in detection_list:
+                            
+                        detection_x = int(round(detection.x * frame_size[0]))
+                        detection_y = int(round(detection.y * frame_size[1]))
+                        detection_points.append((detection_x, detection_y))
+
+                    dist_map = draw_distance(draw_depth_sgbm, aligned_map, detection_points)
                     
                     cv2.imwrite(f"{temp_dir}/frame_{frame_count}.png", dist_map)
                     record_elapsed = time.time() - record_start

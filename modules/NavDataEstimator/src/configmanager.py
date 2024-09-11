@@ -569,6 +569,19 @@ class ConfigManager(BaseClass):
             warning_msg = f"Could not find 'record_filepath' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
+
+        try:
+            self.stream.max_detections = float(config.get(
+                                                   "STREAM", 
+                                                   "max_detections").strip()
+                                              )   
+                                                                     
+            msg = f"Read STREAM - max_detections: {self.stream.max_detections}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'max_detections' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
         
         try:
             self.comm_in.group = str(config.get(

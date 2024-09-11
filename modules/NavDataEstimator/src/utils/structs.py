@@ -47,11 +47,12 @@ class Parameters:
 
 @dataclass
 class Stream:
-    left_camera:  str = None
-    right_camera: str = None
-    record_path:  str = None
+    left_camera:  str   = None
+    right_camera: str   = None
+    record_path:  str   = None
+    max_detections: int = None
     record: bool = None
-    scale:float  = None
+    scale: float = None
     
 
 @dataclass
