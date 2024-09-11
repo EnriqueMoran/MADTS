@@ -532,6 +532,19 @@ class ConfigManager(BaseClass):
             warning_msg = f"Could not find 'right_camera_url' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
+
+        try:
+            self.stream.scale = float(config.get(
+                                          "STREAM", 
+                                          "scale").strip()
+                                     )   
+                                                                     
+            msg = f"Read STREAM - scale: {self.stream.scale}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'scale' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
         
         try:
             self.stream.record = bool(int(config.get(

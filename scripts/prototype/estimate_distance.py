@@ -131,11 +131,7 @@ class MainApp(BaseClass):
 
         # Wait until streams are available
         while not (stream_left.isOpened() and stream_right.isOpened()):
-            if not stream_left.isOpened():
-                stream_left  = StreamConsumer(config_parser.stream.left_camera)
-            if not stream_right.isOpened():
-                stream_right = StreamConsumer(config_parser.stream.right_camera)
-            cv2.waitKey(100)
+            time.sleep(1)
 
         return stream_left, stream_right
 
@@ -198,7 +194,6 @@ class MainApp(BaseClass):
             compute_time = 0
             frame_count  = 0
 
-            num_disp   = distance_calculator.config_parser.parameters.num_disparities    # TODO CHECK not used
             block_size = distance_calculator.config_parser.parameters.block_size
             max_disp   = MAX_DISPARITY
 
@@ -293,7 +288,6 @@ class MainApp(BaseClass):
                                              [(detection_x, detection_y)])
                     
                     cv2.imwrite(f"{temp_dir}/frame_{frame_count}.png", dist_map)
-                    cv2.waitKey(1)
                     record_elapsed = time.time() - record_start
                     self.logger.debug(f"Time taken to record frame: {record_elapsed:.2f} secs.")
             
@@ -314,9 +308,10 @@ class MainApp(BaseClass):
                         frame_height, frame_width, _ = first_img.shape
                         frame_size = (frame_width, frame_height)
 
-                fps   = 1
+                fps = 1
                 codec = cv2.VideoWriter_fourcc(*'FMP4')
-                recording = cv2.VideoWriter(config_parser.stream.record_path, codec, fps, frame_size)
+                recording = cv2.VideoWriter(config_parser.stream.record_path, codec, fps, 
+                                            frame_size)
 
                 for img_file in sorted(os.listdir(temp_dir)):
                     img_path = os.path.join(temp_dir, img_file)
