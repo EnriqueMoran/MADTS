@@ -100,7 +100,7 @@ class MainApp(BaseClass):
                 pass
 
         return res
-    
+
 
     def _get_frame_size(self, stream_left, stream_right):
         while stream_left.isOpened() and stream_right.isOpened():
@@ -337,7 +337,7 @@ class MainApp(BaseClass):
             print(info_msg)
             self.logger.info(info_msg)
             return
-        
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Camera calibrator.")

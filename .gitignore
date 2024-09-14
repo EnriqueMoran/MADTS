@@ -172,3 +172,4 @@ cython_debug/
 *.mp4
 prototype/*
 modules/VideoSynchronizer/cfg/config_prototype.ini
+*.weights

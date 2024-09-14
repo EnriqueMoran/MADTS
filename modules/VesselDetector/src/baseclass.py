@@ -1,5 +1,5 @@
 """
-Implements base class for NavDataEstimator classes.
+Implements base class for VesselDetector classes.
 """
 
 import logging
