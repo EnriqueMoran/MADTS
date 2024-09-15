@@ -5,10 +5,8 @@ Receive detected vessel(s) position on picture, estimate its distance and send i
 import argparse
 import concurrent.futures
 import cv2
-import shutil
 import os
 import sys
-import tempfile
 import time
 
 from datetime import datetime
@@ -188,10 +186,11 @@ class MainApp(BaseClass):
             print(info_msg)
             self.logger.info(info_msg)
 
-            temp_dir = None    # Temp dir to store recording frames (if enabled)
-            if config_parser.stream.record:
-                temp_dir = tempfile.mkdtemp()
-                self.logger.debug(f"Using tmp dir: {temp_dir}")
+            if nav_data_estimator.config_parser.stream.record:
+                fps = 1
+                codec = cv2.VideoWriter_fourcc(*'FMP4')
+                recording = cv2.VideoWriter(config_parser.stream.record_path, codec, fps, 
+                                            frame_size)
 
             compute_time = 0
             frame_count  = 0
@@ -301,37 +300,14 @@ class MainApp(BaseClass):
 
                     dist_map = draw_distance(draw_depth_sgbm, aligned_map, detection_points)
                     
-                    cv2.imwrite(f"{temp_dir}/frame_{frame_count}.png", dist_map)
+                    if config_parser.stream.record:
+                        recording.write(dist_map)
                     record_elapsed = time.time() - record_start
                     self.logger.debug(f"Time taken to record frame: {record_elapsed:.2f} secs.")
             
             stream_left.release()
             stream_right.release()
             if config_parser.stream.record:
-                record_dir = os.path.dirname(config_parser.stream.record_path)
-                if not os.path.exists(record_dir):
-                    os.makedirs(record_dir)
-
-                image_files = sorted(os.listdir(temp_dir))
-                if len(image_files) > 0:
-                    first_img_file = image_files[0]
-                    first_img_path = os.path.join(temp_dir, first_img_file)
-                    first_img = cv2.imread(first_img_path)
-
-                    if first_img is not None:
-                        frame_height, frame_width, _ = first_img.shape
-                        frame_size = (frame_width, frame_height)
-
-                fps = 1
-                codec = cv2.VideoWriter_fourcc(*'FMP4')
-                recording = cv2.VideoWriter(config_parser.stream.record_path, codec, fps, 
-                                            frame_size)
-
-                for img_file in sorted(os.listdir(temp_dir)):
-                    img_path = os.path.join(temp_dir, img_file)
-                    img = cv2.imread(img_path)
-                    recording.write(img)
-                shutil.rmtree(temp_dir)
                 recording.release()
             info_msg = f"Streamings are over!"
             print(info_msg)

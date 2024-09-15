@@ -158,7 +158,6 @@ class MainApp(BaseClass):
             recording = cv2.VideoWriter(vessel_detector.config_parser.stream.record_path, codec, 
                                         fps, frame_size)
                                     
-
         while stream.isOpened():
             ret, frame = stream.read()
             frame_count += 1

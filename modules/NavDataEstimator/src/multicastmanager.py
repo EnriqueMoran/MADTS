@@ -219,7 +219,7 @@ class MulticastManager(BaseClass):
                     self.detection_buffer.append(detection)
                     msg = f"Detection added to buffer. Len: {len(self.detection_buffer)}"
                     self._comms_in_logger.debug(msg)
-                    msg = f"Detection buffer: {self.detection_buffer}"
+                    msg = f"Detection buffer: {self.detection_buffer}\n"
                     self._comms_in_logger.debug(msg)
             except socket.error as e:
                 self._comms_in_logger.error(f"Socket error: {str(e)}")
