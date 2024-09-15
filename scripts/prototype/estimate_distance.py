@@ -17,11 +17,11 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from modules.common.comms.navdata import NavData
+from modules.common.streamconsumer import StreamConsumer
 from modules.NavDataEstimator.src.baseclass import BaseClass
 from modules.NavDataEstimator.src.navdataestimator import NavDataEstimator
 from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_depth_map, draw_distance
 from modules.NavDataEstimator.src.utils.globals import MAX_DISPARITY
-from modules.NavDataEstimator.src.utils.streamconsumer import StreamConsumer
 
 
 __author__ = "EnriqueMoran"

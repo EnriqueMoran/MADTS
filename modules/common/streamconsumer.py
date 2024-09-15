@@ -1,7 +1,8 @@
 """
 Auxiliary class for consuming streaming frame in real time, instead of consuming queued frames.
 
-Based on https://stackoverflow.com/questions/43665208/how-to-get-the-latest-frame-from-capture-device-camera-in-opencv
+Based on:
+https://stackoverflow.com/questions/43665208/how-to-get-the-latest-frame-from-capture-device-camera-in-opencv
 """
 
 import cv2

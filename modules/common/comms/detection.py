@@ -1,4 +1,5 @@
 import struct
+import numpy as np
 
 from modules.common.comms.baseclass import BaseClass
 from modules.common.comms.definitions import MessageType
@@ -7,16 +8,16 @@ from modules.common.comms.definitions import MessageType
 __author__ = "EnriqueMoran"
 
 
-MIN_X = 0
-MAX_X = 1
-MIN_Y = 0
-MAX_Y = 1
-MIN_WIDTH = 0
-MAX_WIDTH = 1
-MIN_HEIGHT = 0
-MAX_HEIGHT = 1
-MIN_PROB = 0
-MAX_PROB = 1
+MIN_X = 0.0
+MAX_X = 1.0
+MIN_Y = 0.0
+MAX_Y = 1.0
+MIN_WIDTH = 0.0
+MAX_WIDTH = 1.0
+MIN_HEIGHT = 0.0
+MAX_HEIGHT = 1.0
+MIN_PROB = 0.0
+MAX_PROB = 1.0
 
 
 class Detection(BaseClass):
@@ -93,7 +94,8 @@ class Detection(BaseClass):
 
     @x.setter
     def x(self, new_x):
-        if isinstance(new_x, float) and new_x >= MIN_X and new_x <= MAX_X:
+        instance_ok = (isinstance(new_x, float) or isinstance(new_x, np.floating))
+        if instance_ok and new_x >= MIN_X and new_x <= MAX_X:
             self._x = new_x
         else:
             msg = f"X ({new_x}) must be a float between {MIN_X} and {MAX_X}."
@@ -107,7 +109,8 @@ class Detection(BaseClass):
 
     @y.setter
     def y(self, new_y):
-        if isinstance(new_y, float) and new_y >= MIN_Y and new_y <= MAX_Y:
+        instance_ok = (isinstance(new_y, float) or isinstance(new_y, np.floating))
+        if instance_ok and new_y >= MIN_Y and new_y <= MAX_Y:
             self._y = new_y
         else:
             msg = f"Y ({new_y}) must be a float between {MIN_Y} and {MAX_Y}."
@@ -121,7 +124,8 @@ class Detection(BaseClass):
 
     @width.setter
     def width(self, new_width):
-        if isinstance(new_width, float) and new_width >= MIN_WIDTH and new_width <= MAX_WIDTH:
+        instance_ok = (isinstance(new_width, float) or isinstance(new_width, np.floating))
+        if instance_ok and new_width >= MIN_WIDTH and new_width <= MAX_WIDTH:
             self._width = new_width
         else:
             msg = f"Width ({new_width}) must be a float between {MIN_WIDTH} and {MAX_WIDTH}."
@@ -135,7 +139,8 @@ class Detection(BaseClass):
 
     @height.setter
     def height(self, new_height):
-        if isinstance(new_height, float) and new_height >= MIN_HEIGHT and new_height <= MAX_HEIGHT:
+        instance_ok = (isinstance(new_height, float) or isinstance(new_height, np.floating))
+        if instance_ok and new_height >= MIN_HEIGHT and new_height <= MAX_HEIGHT:
             self._height = new_height
         else:
             msg = f"Height ({new_height}) must be a float between {MIN_HEIGHT} and {MAX_HEIGHT}."
@@ -149,7 +154,8 @@ class Detection(BaseClass):
 
     @probability.setter
     def probability(self, new_prob):
-        if isinstance(new_prob, float) and new_prob >= MIN_PROB and new_prob <= MAX_PROB:
+        instance_ok = (isinstance(new_prob, float) or isinstance(new_prob, np.floating))
+        if instance_ok and new_prob >= MIN_PROB and new_prob <= MAX_PROB:
             self._probability = new_prob
         else:
             msg = f"Probability ({new_prob}) must be a float between {MIN_PROB} and {MAX_PROB}."

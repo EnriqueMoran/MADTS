@@ -13,9 +13,12 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
+from modules.common.comms.detection import Detection, MAX_X, MAX_Y, MAX_WIDTH, MAX_HEIGHT, MAX_PROB
+from modules.common.streamconsumer import StreamConsumer
 from modules.VesselDetector.src.baseclass import BaseClass
 from modules.VesselDetector.src.vesseldetector import VesselDetector
 from modules.VesselDetector.src.utils.helpers import draw
+
 
 __author__ = "EnriqueMoran"
 
@@ -82,8 +85,39 @@ class MainApp(BaseClass):
             if os.path.exists(self.log_filepath):
                 with open(self.log_filepath, 'w'):
                     pass
+            
+            file_name, file_extension = os.path.splitext(self.log_filepath)
+            comms_out_log = file_name + "_comms_out" + file_extension
+            with open(comms_out_log, 'w'):
+                pass
 
         return res
+    
+    
+    def _get_stream(self, config_parser):
+        stream  = StreamConsumer(config_parser.stream.camera)
+
+        # Wait until stream is available
+        while not stream.isOpened() :
+            time.sleep(1)
+
+        return stream
+
+
+    def _get_frame_size(self, stream):
+        while stream.isOpened():
+            # Obtain frame size by reading one frame from stream
+            ret_left, frame_left   = stream.read()
+        
+            if not ret_left:
+                continue
+            
+            frame_width, frame_height = frame_left.shape[1], frame_left.shape[0]
+            frame_size = (frame_width, frame_height)
+            self.logger.info(f"Frame size: {frame_size}")
+            return frame_size
+
+        return None
 
 
     def main(self):
@@ -92,26 +126,129 @@ class MainApp(BaseClass):
         self.logger.info(info_msg)
 
         vessel_detector = VesselDetector(filename=self.log_filepath,  format=self.log_format,
-                                         level=self.log_level, config_path=self.config_filepath)
+                                         level=self.log_level, config_path=self.config_filepath)                         
         
-        test_image_path = os.path.join("C:/Users/Enrik/Downloads/test.png")
-        img = cv2.imread(test_image_path)
+        scale = vessel_detector.config_parser.stream.scale
+        vessel_detector.multicast_manager.start_communications()
         
-        bboxes, class_names, confidences = vessel_detector.get_detections(img)
+        info_msg = f"Waiting for camera stream..."
+        print(info_msg)
+        self.logger.info(info_msg)
 
-        bbox_abs = vessel_detector.get_bboxes_abs(img=img, bboxes=bboxes)
+        get_stream_start = time.time()
+        stream = self._get_stream(vessel_detector.config_parser)
+        get_stream_elapsed = time.time() - get_stream_start
+        self.logger.debug(f"Time taken to connect to stream: {get_stream_elapsed:.2f} secs.")
 
-        for i, bbox in enumerate(bbox_abs):
-            confidence = confidences[i]
-            class_name = class_names[i]
+        self.logger.info(f"Obtaining frame size...")
 
-            print(f"{class_name} ({confidence})")
-            print(f" {bbox}")
-            if confidence > 0.6:
-                img = draw(bbox, img)
+        frame_size = self._get_frame_size(stream)
+        frame_size = (int(frame_size[0] * scale), int(frame_size[1] * scale))
 
-        cv2.imshow("img", cv2.resize(img, (720, 480)))
-        cv2.waitKey(0)
+        info_msg = f"Processing stream..."
+        print(info_msg)
+        self.logger.info(info_msg)
+
+        compute_time = 0
+        frame_count  = 0
+
+        if vessel_detector.config_parser.stream.record:
+            fps = 1
+            codec = cv2.VideoWriter_fourcc(*'FMP4')
+            recording = cv2.VideoWriter(vessel_detector.config_parser.stream.record_path, codec, 
+                                        fps, frame_size)
+                                    
+
+        while stream.isOpened():
+            ret, frame = stream.read()
+            frame_count += 1
+            
+            if not ret:
+                break
+        
+            computation_start_time = time.time()
+
+            frame = cv2.resize(frame, None, fx=scale, fy=scale)
+            bbox_frame = frame.copy()
+
+            detection_start = time.time()
+            bboxes, class_names, confidences = vessel_detector.get_detections(frame)
+            detection_elapsed = time.time() - detection_start
+            self.logger.debug(f"Time taken to detect vessels: {detection_elapsed:.2f} secs.")
+            
+            bboxes_abs = vessel_detector.get_bboxes_abs(img=frame, bboxes=bboxes)
+
+            for i, bbox in enumerate(bboxes):
+                confidence = confidences[i]
+                class_name = class_names[i]
+                bbox_abs   = bboxes_abs[i]
+
+                self.logger.debug(f"Detection bbox: {bbox}")
+                self.logger.debug(f"Detection class_name: {class_name}")
+                self.logger.debug(f"Detection confidence: {confidence}")
+
+                x = bbox[0]
+                y = bbox[1]
+                width  = bbox[2]
+                height = bbox[3]
+
+                if x > MAX_X:
+                    msg = f"Detection x ({x}) higher than limit ({MAX_X}) setting to {MAX_X}."
+                    self.logger.warning(msg)
+                    x = MAX_X
+                
+                if y > MAX_Y:
+                    msg = f"Detection y ({y}) higher than limit ({MAX_Y}) setting to {MAX_Y}."
+                    self.logger.warning(msg)
+                    y = MAX_Y
+                
+                if width > MAX_WIDTH:
+                    msg = f"Detection width ({width}) higher than limit ({MAX_WIDTH}) setting " +\
+                        f"to {MAX_WIDTH}."
+                    self.logger.warning(msg)
+                    width = MAX_WIDTH
+                
+                if height > MAX_HEIGHT:
+                    msg = f"Detection height ({height}) higher than limit ({MAX_HEIGHT})  " +\
+                        f"setting to {MAX_HEIGHT}."
+                    self.logger.warning(msg)
+                    height = MAX_HEIGHT
+                
+                if confidence > MAX_PROB:
+                    msg = f"Detection probability ({confidence}) higher than limit ({MAX_PROB}) " +\
+                        f"setting to {MAX_PROB}."
+                    self.logger.warning(msg)
+                    confidence = MAX_PROB
+
+                if confidence > vessel_detector.config_parser.detection.min_confidence:
+                    detection_msg = Detection()
+                    detection_msg.x = x
+                    detection_msg.y = y
+                    detection_msg.width  = width
+                    detection_msg.height = height
+                    detection_msg.probability = confidence
+
+                    self.logger.debug(f"Detection message to send:")
+                    self.logger.debug(f"    x: {detection_msg.x}")
+                    self.logger.debug(f"    y: {detection_msg.y}")
+                    self.logger.debug(f"    width: {detection_msg.width}")
+                    self.logger.debug(f"    height: {detection_msg.height}")
+                    self.logger.debug(f"    probability: {detection_msg.probability}")
+                    
+                    vessel_detector.multicast_manager.send_detection(detection_msg)
+                    if vessel_detector.config_parser.stream.record:
+                        bbox_frame = draw(bbox_abs, bbox_frame)
+                        recording.write(bbox_frame)
+
+                computation_elapsed_time = time.time() - computation_start_time
+                self.logger.debug(f"Computation time (loop): {computation_elapsed_time:.2f} secs.")
+
+                compute_time += computation_elapsed_time
+                compute_time_avg = compute_time / frame_count
+                self.logger.debug(f"Computation time (avg): {compute_time_avg:.2f} secs.")
+        
+        if vessel_detector.config_parser.stream.record:
+            recording.release()
 
 
 if __name__ == "__main__":

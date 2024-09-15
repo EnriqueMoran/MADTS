@@ -9,6 +9,7 @@ from pathlib import Path
 
 from modules.VesselDetector.src.baseclass import BaseClass
 from modules.VesselDetector.src.configmanager import ConfigManager
+from modules.VesselDetector.src.multicastmanager import MulticastManager
 from modules.VesselDetector.src.utils.helpers import NMS
 
 
@@ -29,9 +30,14 @@ class VesselDetector(BaseClass):
         super().__init__(filename, format, level)
         self.config_parser = ConfigManager(filename=filename, format=format, level=level, 
                                            config_path=config_path)
+        
+        self.multicast_manager = MulticastManager(filename=filename, format=format, level=level, 
+                                                  config_path=config_path)
+        
         self.model_cfg_path   = Path(self.config_parser.model.model_config_file)
         self.weights_path     = Path(self.config_parser.model.weights_file)
         self.class_names_path = Path(self.config_parser.model.class_names_file)
+
         self.model_width  = self.config_parser.model.width
         self.model_height = self.config_parser.model.height
         self.class_names = self._get_class_names()
@@ -73,7 +79,7 @@ class VesselDetector(BaseClass):
         for detection in detections:
             bbox = detection[:4]
 
-            class_id = np.argmax(detection[5:])
+            class_id   = np.argmax(detection[5:])
             confidence = np.amax(detection[5:])
 
             bboxes.append(bbox)

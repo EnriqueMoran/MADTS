@@ -39,6 +39,15 @@ class ConfigManager(BaseClass):
             ##### MODEL #####
             self.model = Model()
 
+            #### COMMUNICATION OUT ####
+            self.comm_out = Communication()
+
+            #### STREAM ####
+            self.stream = Stream()
+
+            #### DETECTION ####
+            self.detection = Detection()
+
             self.read_config()
 
             self.initialized = True
@@ -124,6 +133,134 @@ class ConfigManager(BaseClass):
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'image_height' in " +\
                           f"section 'MODEL': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.comm_out.group = str(config.get(
+                                          "COMMUNICATION_OUT",
+                                          "multicast_group").strip()
+                                     )
+
+            msg = f"Read COMMUNICATION_OUT - multicast_group: {self.comm_out.group}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'multicast_group' in section 'COMMUNICATION_OUT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.comm_out.port = int(config.get(
+                                         "COMMUNICATION_OUT", 
+                                         "multicast_port").strip()
+                                    )
+
+            msg = f"Read COMMUNICATION_OUT - multicast_port: {self.comm_out.port}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'multicast_port' in section 'COMMUNICATION_OUT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.comm_out.iface = str(config.get(
+                                          "COMMUNICATION_OUT", 
+                                          "multicast_iface").strip()
+                                     )
+                                                                     
+            msg = f"Read COMMUNICATION_OUT - multicast_iface: {self.comm_out.iface}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'multicast_iface' in section 'COMMUNICATION_OUT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.comm_out.ttl = int(config.get(
+                                        "COMMUNICATION_OUT", 
+                                        "multicast_ttl").strip()
+                                    )
+
+            msg = f"Read COMMUNICATION_OUT - multicast_ttl: {self.comm_out.ttl}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'multicast_ttl' in section 'COMMUNICATION_OUT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.comm_out.frequency = float(config.get(
+                                                "COMMUNICATION_OUT", 
+                                                "send_frequency").strip()
+                                           )
+
+            msg = f"Read COMMUNICATION_OUT - send_frequency: {self.comm_out.frequency}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'send_frequency' in section 'COMMUNICATION_OUT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.stream.camera = str(config.get(
+                                              "STREAM", 
+                                              "camera_url").strip()
+                                         )
+                                                                     
+            msg = f"Read STREAM - camera_url: {self.stream.camera}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'camera_url' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.stream.scale = float(config.get(
+                                          "STREAM", 
+                                          "scale").strip()
+                                     )   
+                                                                     
+            msg = f"Read STREAM - scale: {self.stream.scale}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'scale' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.stream.record = bool(int(config.get(
+                                              "STREAM", 
+                                              "record_stream").strip())
+                                     )
+            msg = f"Read STREAM - record_stream: {self.stream.record}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'record_stream' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.stream.record_path = str(config.get(
+                                              "STREAM", 
+                                              "record_filepath").strip()
+                                         )
+            msg = f"Read STREAM - record_filepath: {self.stream.record_path}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'record_filepath' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.detection.min_confidence = float(config.get(
+                                                    "DETECTION", 
+                                                    "min_confidence").strip()
+                                               )   
+                                                                     
+            msg = f"Read DETECTION - min_confidence: {self.detection.min_confidence}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'min_confidence' in section 'DETECTION': {e}"
             self.logger.warning(warning_msg)
             res = False
 
