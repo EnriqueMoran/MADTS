@@ -51,8 +51,9 @@ class Stream:
     right_camera: str   = None
     record_path:  str   = None
     max_detections: int = None
-    record: bool = None
-    scale: float = None
+    record: bool     = None
+    scale:  float    = None
+    lost_frames: int = None
     
 
 @dataclass
@@ -62,3 +63,8 @@ class Communication:
     iface: str = None
     ttl:   int = None
     frequency: float = None
+
+
+@dataclass
+class Correlation:
+    min_distance:float = None

@@ -12,22 +12,24 @@ class Model:
     width:  int = None
     height: int = None
 
+
 @dataclass
 class Communication:
     group: str = None
     port:  int = None
     iface: str = None
     ttl:   int = None
-    frequency: float = None
+
 
 @dataclass
 class Stream:
-    camera: str = None
-    record:bool = None
-    scale:float = None
-    record_path:str   = None
+    camera:  str = None
+    record: bool = None
+    scale: float = None
+    record_path: str = None
+    lost_frames: int = None
     
 
 @dataclass
 class Detection:
-    min_confidence:int = None
+    min_confidence:float = None

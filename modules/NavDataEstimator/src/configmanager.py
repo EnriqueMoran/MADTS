@@ -63,6 +63,9 @@ class ConfigManager(BaseClass):
             #### COMMUNICATION OUT ####
             self.comm_out = Communication()
 
+            #### CORRELATION ####
+            self.correlation = Correlation()
+
             self.read_config()
 
             self.initialized = True
@@ -584,6 +587,19 @@ class ConfigManager(BaseClass):
             res = False
         
         try:
+            self.stream.lost_frames = int(config.get(
+                                               "STREAM", 
+                                               "max_lost_frames").strip()
+                                          )   
+                                                                     
+            msg = f"Read STREAM - max_lost_frames: {self.stream.lost_frames}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'max_lost_frames' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
             self.comm_in.group = str(config.get(
                                          "COMMUNICATION_IN", 
                                          "multicast_group").strip()
@@ -697,6 +713,19 @@ class ConfigManager(BaseClass):
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'send_frequency' in section 'COMMUNICATION_OUT': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
+        try:
+            self.correlation.min_distance = float(config.get(
+                                                      "CORRELATION", 
+                                                      "min_distance").strip()
+                                                 )   
+                                                                     
+            msg = f"Read CORRELATION - min_distance: {self.correlation.min_distance}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'min_distance' in section 'CORRELATION': {e}"
             self.logger.warning(warning_msg)
             res = False
 

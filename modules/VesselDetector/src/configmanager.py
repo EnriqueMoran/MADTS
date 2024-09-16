@@ -189,19 +189,6 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.comm_out.frequency = float(config.get(
-                                                "COMMUNICATION_OUT", 
-                                                "send_frequency").strip()
-                                           )
-
-            msg = f"Read COMMUNICATION_OUT - send_frequency: {self.comm_out.frequency}"
-            self.logger.info(msg)
-        except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'send_frequency' in section 'COMMUNICATION_OUT': {e}"
-            self.logger.warning(warning_msg)
-            res = False
-
-        try:
             self.stream.camera = str(config.get(
                                               "STREAM", 
                                               "camera_url").strip()
@@ -248,6 +235,19 @@ class ConfigManager(BaseClass):
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'record_filepath' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.stream.lost_frames = int(config.get(
+                                               "STREAM", 
+                                               "max_lost_frames").strip()
+                                          )   
+                                                                     
+            msg = f"Read STREAM - max_lost_frames: {self.stream.lost_frames}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'max_lost_frames' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
         

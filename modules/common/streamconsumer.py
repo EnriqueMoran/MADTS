@@ -8,51 +8,32 @@ https://stackoverflow.com/questions/43665208/how-to-get-the-latest-frame-from-ca
 import cv2
 import queue
 import threading
-import time
 
-import cv2
-import queue
-import threading
-import time
 
-class StreamConsumer:
+class StreamConsumer(threading.Thread):
 
     def __init__(self, url):
+        super().__init__(daemon=True)
         self.url = url
-        self.cap = None
-        self.queue = queue.Queue()
-        self.stopped = False
-        self._open()
-        t = threading.Thread(target=self._reader, daemon=True)
-        t.start()
+        self.cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.queue   = queue.Queue()
+        self.stopped = threading.Event()
+        self.start()
 
 
     def __del__(self):
         self.release()
 
 
-    def _open(self):
-        """
-        Open the video capture source. Retry until successful.
-        """
-        while not self.stopped:
-            self.cap = cv2.VideoCapture(self.url)
-            if self.cap.isOpened():
-                break
-            else:
-                self.cap.release()
-                time.sleep(1)
-
-
-    def _reader(self):
+    def run(self):
         """
         Continuously read frames from the video source, keeping only the most recent one.
         """
-        while not self.stopped and self.cap.isOpened():
+        while not self.stopped.is_set() and self.cap.isOpened():
             try:
                 ret, frame = self.cap.read()
-                if not ret:  # If frame is not successfully read
-                    self._reopen()
+                if not ret:
                     continue
 
                 if not self.queue.empty():
@@ -65,19 +46,9 @@ class StreamConsumer:
 
             except cv2.error as e:
                 print(f"OpenCV error: {e}")
-                self._reopen()
 
             except Exception as e:
                 print(f"Error in stream reader: {e}")
-                self._reopen()
-
-
-    def _reopen(self):
-        """
-        Attempt to reopen the video stream if an error occurs.
-        """
-        self.cap.release()
-        self._open()
 
 
     def read(self):
@@ -85,7 +56,7 @@ class StreamConsumer:
         Return the most recent frame from the queue.
         """
         frame = None
-        ret = False
+        ret   = False
         if not self.queue.empty():
             frame = self.queue.get()
             ret = True
@@ -103,6 +74,6 @@ class StreamConsumer:
         """
         Stop the stream and release resources.
         """
-        self.stopped = True
+        self.stopped.set()
         if self.cap:
             self.cap.release()

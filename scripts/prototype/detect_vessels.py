@@ -99,6 +99,8 @@ class MainApp(BaseClass):
 
         # Wait until stream is available
         while not stream.isOpened() :
+            stream.release()
+            stream  = StreamConsumer(config_parser.stream.camera)
             time.sleep(1)
 
         return stream
@@ -107,7 +109,7 @@ class MainApp(BaseClass):
     def _get_frame_size(self, stream):
         while stream.isOpened():
             # Obtain frame size by reading one frame from stream
-            ret_left, frame_left   = stream.read()
+            ret_left, frame_left = stream.read()
         
             if not ret_left:
                 continue
@@ -138,7 +140,7 @@ class MainApp(BaseClass):
         get_stream_start = time.time()
         stream = self._get_stream(vessel_detector.config_parser)
         get_stream_elapsed = time.time() - get_stream_start
-        self.logger.debug(f"Time taken to connect to stream: {get_stream_elapsed:.2f} secs.")
+        self.logger.debug(f"Time required to connect to stream: {get_stream_elapsed:.2f} secs.")
 
         self.logger.info(f"Obtaining frame size...")
 
@@ -158,12 +160,20 @@ class MainApp(BaseClass):
             recording = cv2.VideoWriter(vessel_detector.config_parser.stream.record_path, codec, 
                                         fps, frame_size)
                                     
+        lost_frames = 0
         while stream.isOpened():
             ret, frame = stream.read()
             frame_count += 1
-            
+
             if not ret:
-                break
+                lost_frames += 1
+                if lost_frames >= vessel_detector.config_parser.stream.lost_frames:
+                    break
+                else:
+                    time.sleep(1/30)    # Assume stream runs at 30 fps
+                    continue
+            
+            lost_frames = 0
         
             computation_start_time = time.time()
 
@@ -173,7 +183,7 @@ class MainApp(BaseClass):
             detection_start = time.time()
             bboxes, class_names, confidences = vessel_detector.get_detections(frame)
             detection_elapsed = time.time() - detection_start
-            self.logger.debug(f"Time taken to detect vessels: {detection_elapsed:.2f} secs.")
+            self.logger.debug(f"Time required to detect vessels: {detection_elapsed:.2f} secs.")
             
             bboxes_abs = vessel_detector.get_bboxes_abs(img=frame, bboxes=bboxes)
 
@@ -241,13 +251,19 @@ class MainApp(BaseClass):
 
                 computation_elapsed_time = time.time() - computation_start_time
                 self.logger.debug(f"Computation time (loop): {computation_elapsed_time:.2f} secs.")
-
                 compute_time += computation_elapsed_time
-                compute_time_avg = compute_time / frame_count
-                self.logger.debug(f"Computation time (avg): {compute_time_avg:.2f} secs.")
+                
+            compute_time_avg = compute_time / frame_count
+            self.logger.debug(f"Computation time (avg): {compute_time_avg:.2f} secs.")
         
         if vessel_detector.config_parser.stream.record:
             recording.release()
+
+        stream.release()
+
+        info_msg = f"Streaming is over!"
+        print(info_msg)
+        self.logger.info(info_msg)
 
 
 if __name__ == "__main__":
