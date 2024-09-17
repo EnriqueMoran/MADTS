@@ -103,6 +103,42 @@ TBD. Here goes the desciption of communication between the modules.
 ## Installation
 TBD. Here goes installation instructions.
 
+## RTMP Server
+
+```
+sudo chown -R nobody:nogroup /streams/*
+```
+
+Configuration used:
+```
+rtmp {
+        server {
+                listen 1935;
+                chunk_size 4096;
+                notify_method get;
+
+                application gopro_left {
+                            live on;
+                            #Set this to "record off" if you don't want to save a copy of your broadcasts
+                            record video;
+                            #The directory in which the recordings will be stored
+                            record_path /streams/left/;
+                            record_unique on;
+                }
+
+                application gopro_right {
+                            live on;
+                            #Set this to "record off" if you don't want to save a copy of your broadcasts
+                            record video;
+                            #The directory in which the recordings will be stored
+                            record_path /streams/right/;
+                            record_unique on;
+                }
+        }
+
+   }
+```
+
 ## Usage
 TBD. Here goes usage instructions.
 

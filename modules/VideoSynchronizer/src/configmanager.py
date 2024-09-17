@@ -248,17 +248,6 @@ class ConfigManager(BaseClass):
             warning_msg = f"Could not find 'duration' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
-        
-        try:
-            self.stream.hypersmooth = bool(int(config.get(
-                                                   "STREAM", 
-                                                   "hypersmooth").strip())
-                                           )
-            self.logger.info(f"Read STREAM - hypersmooth: {self.stream.hypersmooth}.")
-        except (configparser.NoSectionError, configparser.NoOptionError) as e:
-            warning_msg = f"Could not find 'hypersmooth' in section 'STREAM': {e}"
-            self.logger.warning(warning_msg)
-            res = False
 
         try:
             self.stream.record_stream = bool(int(config.get(

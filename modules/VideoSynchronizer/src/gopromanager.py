@@ -1,12 +1,16 @@
 """
 TBD
 
-WirelessGoPro documentation: https://github.com/gopro/OpenGoPro/tree/main/demos/python/sdk_wireless_camera_control/docs
-OpenGoPro usage: https://github.com/gopro/OpenGoPro/blob/78a3864e2447f2eb631ed5b730891e42fe40457b/demos/python/sdk_wireless_camera_control/docs/usage.rst
-OpenGoPro Python SDK: https://gopro.github.io/OpenGoPro/python_sdk/api.html
+WirelessGoPro documentation: 
+    https://github.com/gopro/OpenGoPro/tree/main/demos/python/sdk_wireless_camera_control/docs
+OpenGoPro usage:
+    https://github.com/gopro/OpenGoPro/blob/78a3864e2447f2eb631ed5b730891e42fe40457b/demos/python/sdk_wireless_camera_control/docs/usage.rst
+OpenGoPro Python SDK: 
+    https://gopro.github.io/OpenGoPro/python_sdk/api.html
 """
 
 import asyncio
+import signal
 
 from open_gopro import Params, WirelessGoPro, proto
 from open_gopro.constants import StatusId, ActionId
@@ -41,6 +45,9 @@ class GoProManager(BaseClass):
         self.min_bitrate   = config_manager.stream.min_bitrate
         self.max_bitrate   = config_manager.stream.max_bitrate
         self.start_bitrate = config_manager.stream.starting_bitrate
+        self.duration      = config_manager.stream.duration
+
+        self.stop_streaming = False    # Stop streaming after capturing ctrl+c
 
         if config_manager.stream.resolution == 0:
             self.resolution = proto.EnumWindowSize.WINDOW_SIZE_480
@@ -55,6 +62,12 @@ class GoProManager(BaseClass):
             self.fov = proto.EnumLens.LENS_LINEAR
         else:
             self.fov = proto.EnumLens.LENS_SUPERVIEW
+
+    def signal_handler(self, sig, frame):
+        msg = "Received shutdown signal (Ctrl+C), stopping the stream..."
+        self.logger.info(msg)
+        print(msg)
+        self.stop_streaming = True
 
 
     async def perform_actions(self, gopro:WirelessGoPro, queue:asyncio.Queue) -> None:
@@ -140,7 +153,7 @@ class GoProManager(BaseClass):
                 # Notify finished task
                 queue.task_done()
                 
-                
+            signal.signal(signal.SIGINT, self.signal_handler)
 
             # Configure Go Pro to start streaming
             if action == GoProAction.CONFIGURE_STREAM:
@@ -202,7 +215,6 @@ class GoProManager(BaseClass):
                 self.logger.info(f"{gopro_name} is ready for streaming.")
                 # Notify finished task
                 queue.task_done()
-                
             
             # Start streaming
             if action == GoProAction.START_STREAMING:
@@ -213,7 +225,17 @@ class GoProManager(BaseClass):
                 self.logger.debug(f"Received response from {target}: {start_response}")
                 self.logger.info(f"{gopro_name} Livestream on!")
 
-                await asyncio.sleep(280)    # Test stream 1 min TODO REMOVE
+                counter = 0
+                while True:
+                    if self.stop_streaming:
+                        break
+
+                    if self.duration > 0:
+                        if counter > self.duration:
+                            self.logger.info(f"Streaming duration reached ({counter})!")
+                            break
+                    await asyncio.sleep(5)
+                    counter += 5
 
                 self.logger.info(f"Closing {gopro_name} livestream...")
                 log_msg = f"Sending set_shutter(DISABLE) command through BLE to {target}."
@@ -297,6 +319,7 @@ class GoProManager(BaseClass):
                 self.logger.debug(f"All task from LEFT GO PRO Queue done!")
                 await gopro_right_queue.join()
                 self.logger.debug(f"All task from RIGHT GO PRO Queue done!")
+                return
             except FailedToFindDevice as e:
                 log_msg = f"Couldn't connect to GoPro, scan timed out without finding a device!"
                 self.logger.warning(log_msg)

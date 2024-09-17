@@ -140,6 +140,7 @@ class MainApp(BaseClass):
         get_stream_start = time.time()
         stream = self._get_stream(vessel_detector.config_parser)
         get_stream_elapsed = time.time() - get_stream_start
+        self.logger.info(f"Stream running at {stream.get_fps()} fps.") 
         self.logger.debug(f"Time required to connect to stream: {get_stream_elapsed:.2f} secs.")
 
         self.logger.info(f"Obtaining frame size...")
@@ -159,7 +160,7 @@ class MainApp(BaseClass):
             codec = cv2.VideoWriter_fourcc(*'FMP4')
             recording = cv2.VideoWriter(vessel_detector.config_parser.stream.record_path, codec, 
                                         fps, frame_size)
-                                    
+                       
         lost_frames = 0
         while stream.isOpened():
             ret, frame = stream.read()
@@ -170,7 +171,7 @@ class MainApp(BaseClass):
                 if lost_frames >= vessel_detector.config_parser.stream.lost_frames:
                     break
                 else:
-                    time.sleep(1/30)    # Assume stream runs at 30 fps
+                    time.sleep(1/stream.get_fps())
                     continue
             
             lost_frames = 0

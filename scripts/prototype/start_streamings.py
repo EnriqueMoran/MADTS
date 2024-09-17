@@ -120,6 +120,9 @@ class MainApp:
 
 
     async def main(self):
+        info_msg = f"Running Start streamings script..."
+        print(info_msg)
+        self.logger.info(info_msg)
         video_syn = VideoSynchronizer(filename=self.log_filepath, format=self.log_format, 
                                       level=self.log_level, config_path=self.config_filepath)
         await video_syn.gopro_manager.start_streaming()

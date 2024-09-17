@@ -16,8 +16,8 @@ class StreamConsumer(threading.Thread):
     def __init__(self, url):
         super().__init__(daemon=True)
         self.url = url
-        self.cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.cap = cv2.VideoCapture(self.url)
+        #self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         self.queue   = queue.Queue()
         self.stopped = threading.Event()
         self.start()
