@@ -8,6 +8,7 @@ https://stackoverflow.com/questions/43665208/how-to-get-the-latest-frame-from-ca
 import cv2
 import queue
 import threading
+import time
 
 
 class StreamConsumer(threading.Thread):
@@ -34,6 +35,7 @@ class StreamConsumer(threading.Thread):
             try:
                 ret, frame = self.cap.read()
                 if not ret:
+                    time.sleep(0.01)
                     continue
 
                 if not self.queue.empty():
@@ -75,5 +77,13 @@ class StreamConsumer(threading.Thread):
         Stop the stream and release resources.
         """
         self.stopped.set()
+        self.join()
         if self.cap:
             self.cap.release()
+    
+    
+    def get_fps(self):
+        """
+        Return stream fps.
+        """
+        return self.cap.get(cv2.CAP_PROP_FPS)

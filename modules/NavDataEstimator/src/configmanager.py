@@ -410,6 +410,30 @@ class ConfigManager(BaseClass):
         try:
             value = int(config.get(
                             "PARAMETERS", 
+                            "max_disparities").strip()
+                       )
+            
+            msg = f"Read PARAMETERS - max_disparities: {value}"
+            self.logger.info(msg)
+
+            if value % 16 != 0:
+                remainder = value % 16
+                if remainder < 8:
+                    value = value - remainder
+                else:
+                    value = value + (16 - remainder)
+                warning_msg = f"Value is not multiple of 16, set as {value}"
+                self.logger.warning(warning_msg)
+
+            self.parameters.max_disparities = value
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'max_disparities' in section 'PARAMETERS': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            value = int(config.get(
+                            "PARAMETERS", 
                             "block_size").strip()
                        )
                                                                      
@@ -507,6 +531,19 @@ class ConfigManager(BaseClass):
             self.parameters.rectification_mode = RectificationMode(value)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'rectification_mode' in section 'PARAMETERS': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.parameters.detection_kernel = int(config.get(
+                                                       "PARAMETERS", 
+                                                       "detection_kernel".strip())
+                                                  )
+                                                                     
+            msg = f"Read PARAMETERS - detection_kernel: {self.parameters.detection_kernel}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'detection_kernel' in section 'PARAMETERS': {e}"
             self.logger.warning(warning_msg)
             res = False
 

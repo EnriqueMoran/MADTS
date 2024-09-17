@@ -10,7 +10,7 @@ import sys
 import time
 
 from datetime import datetime
-from math import sqrt
+from math import isnan, sqrt
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
@@ -19,8 +19,7 @@ from modules.common.comms.navdata import NavData
 from modules.common.streamconsumer import StreamConsumer
 from modules.NavDataEstimator.src.baseclass import BaseClass
 from modules.NavDataEstimator.src.navdataestimator import NavDataEstimator
-from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_depth_map, draw_distance
-from modules.NavDataEstimator.src.utils.globals import MAX_DISPARITY
+from modules.NavDataEstimator.src.utils.helpers import crop_roi, draw_depth_map, draw_distance_cloud
 
 
 __author__ = "EnriqueMoran"
@@ -153,9 +152,9 @@ class MainApp(BaseClass):
         to the same detected object.
         """
         res = []
-        for detection in reversed(detections):    # Process latest detection first
+        for detection in detections:
             discard_detection = False
-            for j in range(len(res)):  # Cambiar a len(res) para evitar out of range
+            for j in range(len(res)):
                 if self._get_distance_detections(detection, res[j]) < threshold:
                     discard_detection = True
                     break
@@ -164,8 +163,8 @@ class MainApp(BaseClass):
         return res
     
 
-    def _record_stream(self, recording, distance_calculator, frame_left, aligned_map, frame_size, 
-                       detection_list):
+    def _record_stream(self, recording, distance_calculator, frame_left, aligned_map, 
+                       detection_list, kernel_size):
         """
         Function to handle video recording in a separate thread.
         
@@ -180,13 +179,7 @@ class MainApp(BaseClass):
         aligned_norm = distance_calculator.normalize_depth_map(aligned_map)
         draw_depth_sgbm = draw_depth_map(frame_left, aligned_norm)
 
-        detection_points = []
-        for detection in detection_list:
-            detection_x = int(round(detection.x * frame_size[0]))
-            detection_y = int(round(detection.y * frame_size[1]))
-            detection_points.append((detection_x, detection_y))
-
-        dist_map = draw_distance(draw_depth_sgbm, aligned_map, detection_points)
+        dist_map = draw_distance_cloud(draw_depth_sgbm, detection_list, kernel_size)
         recording.write(dist_map)
 
 
@@ -250,21 +243,28 @@ class MainApp(BaseClass):
         frame_count  = 0
 
         block_size = distance_calculator.config_parser.parameters.block_size
-        max_disp = MAX_DISPARITY
+        max_disp = distance_calculator.config_parser.parameters.max_disparities
 
-
-
-        stereo_sgbm = cv2.StereoSGBM_create(0, max_disp, block_size, uniquenessRatio=10,
-                                                speckleWindowSize=100, speckleRange=32,
-                                                disp12MaxDiff=1,
-                                                mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY)
+        stereo_sgbm = cv2.StereoSGBM_create(minDisparity=0, 
+                                            numDisparities=max_disp,
+                                            blockSize=block_size,
+                                            P1=8 * 1 * block_size ** 2,
+                                            P2=32 * 1 * block_size ** 2,
+                                            uniquenessRatio=10,
+                                            speckleWindowSize=100,
+                                            speckleRange=32,
+                                            disp12MaxDiff=1,
+                                            mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY)
+        
+        stream_fps = min(stream_left.get_fps(), stream_right.get_fps())
+        self.logger.info(f"Left stream running at {stream_left.get_fps()} fps.")
+        self.logger.info(f"Right stream running at {stream_right.get_fps()} fps.")
 
         lost_frames = 0
         with concurrent.futures.ThreadPoolExecutor() as executor:
             while stream_left.isOpened() and stream_right.isOpened():
                 detection_list = []
-                detection_buffer = nav_data_estimator.multicast_manager.detection_buffer
-
+                
                 ret_left, frame_left   = stream_left.read()
                 ret_right, frame_right = stream_right.read()
 
@@ -273,17 +273,21 @@ class MainApp(BaseClass):
                     if lost_frames >= config_parser.stream.lost_frames:
                         break
                     else:
-                        time.sleep(1/30)    # Assume streams run at 30 fps
+                        time.sleep(1/stream_fps)
                         continue
                 
                 lost_frames = 0
 
+                # Give Vessel detector some time to send latest data as we are reading latest
+                # frame and detection emission takes some time to send
+                #time.sleep(1)
+                detection_buffer = nav_data_estimator.multicast_manager.detection_buffer
+
                 if len(detection_buffer) == 0:
                     continue    # No detections to process
                 
-                time.sleep(0.1)    # Give Vessel detector some time to send latest data
                 while detection_buffer:
-                    detection = detection_buffer.popleft()
+                    detection = detection_buffer.pop()
                     detection_list.append(detection)
                     self.logger.debug(f"Processing detection:")
                     self.logger.debug(f"    x: {detection.x}")
@@ -332,11 +336,19 @@ class MainApp(BaseClass):
                 msg = f"Time required to compute homography matrix: {homography_elapsed:.2f} secs."
                 self.logger.debug(msg)
                 
+                distance_map = {}
                 for detection in detection_list:
                     detection_x = int(round(detection.x * frame_size[0]))
                     detection_y = int(round(detection.y * frame_size[1]))
-                    dist = float(aligned_map[detection_y, detection_x])
+                    #dist = float(aligned_map[detection_y, detection_x])
+                    dist = float(distance_calculator.get_avg_distance(aligned_map, (detection_y, 
+                                                                                    detection_x)))
                     self.logger.debug(f"Detection {(detection_x, detection_y)} distance: {dist}")
+                    distance_map[(detection_x, detection_y)] = dist
+
+                    if isnan(dist):
+                        self.logger.debug(f"Skipping message")
+                        continue
 
                     nav_data_msg = NavData()
                     nav_data_msg.id = 0           # TODO Calculate
@@ -359,7 +371,8 @@ class MainApp(BaseClass):
 
                 if config_parser.stream.record:
                     future = executor.submit(self._record_stream, recording, distance_calculator,
-                                             frame_left, aligned_map, frame_size, detection_list)
+                                             frame_left, aligned_map, distance_map, 
+                                             config_parser.parameters.detection_kernel)
                     future.result()
             
             stream_left.release()

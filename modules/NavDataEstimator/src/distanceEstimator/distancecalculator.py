@@ -253,7 +253,7 @@ class DistanceCalculator(BaseClass):
 
         depth_map_normalized = cv2.normalize(image_copy, None, 0, 255, cv2.NORM_MINMAX)
         depth_map_normalized = np.uint8(depth_map_normalized)
-        depth_map_colored = cv2.applyColorMap(depth_map_normalized, cv2.COLORMAP_VIRIDIS)
+        depth_map_colored    = cv2.applyColorMap(depth_map_normalized, cv2.COLORMAP_VIRIDIS)
         return depth_map_colored
     
 
@@ -327,14 +327,14 @@ class DistanceCalculator(BaseClass):
 
         return frame_with_distances
 
-        
-    def get_homography(self, depth_map, image):
+
+    def get_homography(self, image1, image2):
         """
         TBD
         """
         orb = cv2.ORB_create()
-        kp1, des1 = orb.detectAndCompute(depth_map, None)
-        kp2, des2 = orb.detectAndCompute(image, None)
+        kp1, des1 = orb.detectAndCompute(image1, None)
+        kp2, des2 = orb.detectAndCompute(image2, None)
 
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         matches = bf.match(des1, des2)
@@ -346,3 +346,40 @@ class DistanceCalculator(BaseClass):
 
         H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         return H
+
+
+    def get_avg_distance(self, depth_map, point):
+        """
+        Returns average distance from points within kernel area, excluding outliers.
+        """
+        avg_dist = 0
+        kernel_half = self.config_parser.parameters.detection_kernel // 2
+
+        y, x = point
+        x_min = max(x - kernel_half, 0)
+        x_max = min(x + kernel_half, depth_map.shape[1] - 1)
+        y_min = max(y - kernel_half, 0)
+        y_max = min(y + kernel_half, depth_map.shape[0] - 1)
+
+        kernel_area = depth_map[y_min:y_max + 1, x_min:x_max + 1]
+        valid_values = kernel_area[kernel_area > 0]
+
+        if valid_values.size > 0:
+            mean_dist = valid_values.mean()
+            std_dist = valid_values.std()
+
+            threshold = 1 
+
+            filtered_values = valid_values[
+                (valid_values >= mean_dist - threshold * std_dist) & 
+                (valid_values <= mean_dist + threshold * std_dist)
+            ]
+
+            if filtered_values.size > 0:
+                avg_dist = float(filtered_values.mean())
+            else:
+                avg_dist = float('nan')
+        else:
+            avg_dist = float('nan')
+
+        return avg_dist
