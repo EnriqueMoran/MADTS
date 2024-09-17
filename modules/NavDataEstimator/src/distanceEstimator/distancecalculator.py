@@ -34,6 +34,9 @@ class DistanceCalculator(BaseClass):
                                      config_path=config_path)
         self.undistort_method   = self.config_parser.parameters.undistort_method
         self.rectification_mode = self.config_parser.parameters.rectification_mode
+        self.detection_kernel   = self.config_parser.parameters.detection_kernel
+        self.horizontal_fov = self.config_parser.left_camera_specs.h_fov    # Relative to left cam
+        self.vertical_fov   = self.config_parser.left_camera_specs.v_fov    # Relative to left cam
 
     
     def precompute_rectification_maps(self, Kl, Dl, Kr, Dr, image_size, R, T):
@@ -353,7 +356,7 @@ class DistanceCalculator(BaseClass):
         Returns average distance from points within kernel area, excluding outliers.
         """
         avg_dist = 0
-        kernel_half = self.config_parser.parameters.detection_kernel // 2
+        kernel_half = self.detection_kernel // 2
 
         y, x = point
         x_min = max(x - kernel_half, 0)
@@ -383,3 +386,31 @@ class DistanceCalculator(BaseClass):
             avg_dist = float('nan')
 
         return avg_dist
+
+
+    def get_angle(self, point, image_width, image_height):
+        """
+        Calculate the angle of a point with respect to the center of the image.
+        
+        Args:
+            point (tuple): (x, y) coordinates of the point in the image.
+            image_width (int): Width of the image.
+            image_height (int): Height of the image.
+        
+        Returns:
+            angle_x (float): Angle with respect to the x-axis (horizontal).
+            angle_y (float): Angle with respect to the y-axis (vertical).
+        """
+        center_x = image_width / 2
+        center_y = image_height / 2
+        
+        dx = point[0] - center_x
+        dy = point[1] - center_y
+
+        angle_per_pixel_x = self.horizontal_fov / image_width
+        angle_per_pixel_y = self.vertical_fov / image_height
+        
+        angle_x = dx * angle_per_pixel_x
+        angle_y = dy * angle_per_pixel_y
+        
+        return angle_x, angle_y

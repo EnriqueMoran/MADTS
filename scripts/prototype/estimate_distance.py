@@ -243,7 +243,7 @@ class MainApp(BaseClass):
         frame_count  = 0
 
         block_size = distance_calculator.config_parser.parameters.block_size
-        max_disp = distance_calculator.config_parser.parameters.max_disparities
+        max_disp   = distance_calculator.config_parser.parameters.max_disparities
 
         stereo_sgbm = cv2.StereoSGBM_create(minDisparity=0, 
                                             numDisparities=max_disp,
@@ -350,10 +350,13 @@ class MainApp(BaseClass):
                         self.logger.debug(f"Skipping message")
                         continue
 
+                    bearing, _ = distance_calculator.get_angle((detection_x, detection_y),
+                                                               frame_size[0], frame_size[1])
+                    
                     nav_data_msg = NavData()
                     nav_data_msg.id = 0           # TODO Calculate
                     nav_data_msg.distance = dist
-                    nav_data_msg.bearing  = 90    # TODO Calculate
+                    nav_data_msg.bearing  = bearing
 
                     self.logger.debug(f"NavData message to send:")
                     self.logger.debug(f"    id: {nav_data_msg.id}")

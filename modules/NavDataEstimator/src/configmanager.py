@@ -114,14 +114,26 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.left_camera_specs.fov = float(config.get(
+            self.left_camera_specs.h_fov = float(config.get(
                                                    "LEFT_CAMERA_SPECS", 
                                                    "horizontal_fov").strip()
                                               )
-            msg = f"Read LEFT_CAMERA - horizontal_fov: {self.left_camera_specs.fov}"
+            msg = f"Read LEFT_CAMERA - horizontal_fov: {self.left_camera_specs.h_fov}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'horizontal_fov' in section 'LEFT_CAMERA': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.left_camera_specs.v_fov = float(config.get(
+                                                     "LEFT_CAMERA_SPECS", 
+                                                     "vertical_fov").strip()
+                                                )
+            msg = f"Read LEFT_CAMERA - vertical_fov: {self.left_camera_specs.v_fov}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'vertical_fov' in section 'LEFT_CAMERA': {e}"
             self.logger.warning(warning_msg)
             res = False
         
@@ -150,14 +162,26 @@ class ConfigManager(BaseClass):
             res = False
 
         try:
-            self.right_camera_specs.fov = float(config.get(
+            self.right_camera_specs.h_fov = float(config.get(
                                                     "RIGHT_CAMERA_SPECS", 
                                                     "horizontal_fov").strip()
                                                )
-            msg = f"Read RIGHT_CAMERA - horizontal_fov: {self.right_camera_specs.fov}"
+            msg = f"Read RIGHT_CAMERA - horizontal_fov: {self.right_camera_specs.h_fov}"
             self.logger.info(msg)
         except (configparser.NoSectionError, configparser.NoOptionError) as e:
             warning_msg = f"Could not find 'horizontal_fov' in section 'RIGHT_CAMERA': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.right_camera_specs.v_fov = float(config.get(
+                                                      "RIGHT_CAMERA_SPECS", 
+                                                      "vertical_fov").strip()
+                                                 )
+            msg = f"Read RIGHT_CAMERA - vertical_fov: {self.right_camera_specs.v_fov}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'vertical_fov' in section 'RIGHT_CAMERA': {e}"
             self.logger.warning(warning_msg)
             res = False
         

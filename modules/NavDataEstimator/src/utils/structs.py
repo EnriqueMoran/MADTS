@@ -9,7 +9,8 @@ __author__ = "EnriqueMoran"
 class CameraSpecs:
     focal_length: float = None
     pixel_size:   float = None
-    fov:          float = None
+    h_fov:        float = None
+    v_fov:        float = None
 
 
 @dataclass
