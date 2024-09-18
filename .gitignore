@@ -173,3 +173,6 @@ cython_debug/
 prototype/*
 modules/VideoSynchronizer/cfg/config_prototype.ini
 *.weights
+
+build-CameraTracker-Desktop_Qt_5_15_2_GCC_64bit-Debug/
+Desktop_Qt_6_7_2_MinGW_64_bit-Debug/

@@ -1,0 +1,18 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>resources/img/air_ally.png</file>
+        <file>resources/img/air_enemy.png</file>
+        <file>resources/img/air_unknown.png</file>
+        <file>resources/img/blue_bar_mid.png</file>
+        <file>resources/img/gray_bar_long.png</file>
+        <file>resources/img/gray_bar_short.png</file>
+        <file>resources/img/ownship_bars.png</file>
+        <file>resources/img/red_bar_mid.png</file>
+        <file>resources/img/surface_ally.png</file>
+        <file>resources/img/surface_enemy.png</file>
+        <file>resources/img/surface_unknown.png</file>
+        <file>resources/img/yellow_bar_mid.png</file>
+        <file>resources/img/air_selector.png</file>
+        <file>resources/img/surface_selector.png</file>
+    </qresource>
+</RCC>

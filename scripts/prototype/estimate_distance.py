@@ -356,7 +356,7 @@ class MainApp(BaseClass):
                     
                     nav_data_msg = NavData()
                     nav_data_msg.id = 0           # TODO Calculate
-                    nav_data_msg.distance = dist
+                    nav_data_msg.distance = dist / 100     # From cm to meters
                     nav_data_msg.bearing  = int(bearing)
 
                     self.logger.debug(f"NavData message to send:")
