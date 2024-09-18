@@ -344,7 +344,6 @@ class MainApp(BaseClass):
                     dist = float(distance_calculator.get_avg_distance(aligned_map, (detection_y, 
                                                                                     detection_x)))
                     self.logger.debug(f"Detection {(detection_x, detection_y)} distance: {dist}")
-                    distance_map[(detection_x, detection_y)] = dist
 
                     if isnan(dist):
                         self.logger.debug(f"Skipping message")
@@ -353,10 +352,12 @@ class MainApp(BaseClass):
                     bearing, _ = distance_calculator.get_angle((detection_x, detection_y),
                                                                frame_size[0], frame_size[1])
                     
+                    distance_map[(detection_x, detection_y)] = (dist, int(bearing))
+                    
                     nav_data_msg = NavData()
                     nav_data_msg.id = 0           # TODO Calculate
                     nav_data_msg.distance = dist
-                    nav_data_msg.bearing  = bearing
+                    nav_data_msg.bearing  = int(bearing)
 
                     self.logger.debug(f"NavData message to send:")
                     self.logger.debug(f"    id: {nav_data_msg.id}")

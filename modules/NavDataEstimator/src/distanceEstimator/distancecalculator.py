@@ -410,7 +410,7 @@ class DistanceCalculator(BaseClass):
         angle_per_pixel_x = self.horizontal_fov / image_width
         angle_per_pixel_y = self.vertical_fov / image_height
         
-        angle_x = dx * angle_per_pixel_x
-        angle_y = dy * angle_per_pixel_y
+        angle_x = (dx * angle_per_pixel_x) % 360
+        angle_y = (dy * angle_per_pixel_y) % 360
         
         return angle_x, angle_y

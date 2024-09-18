@@ -154,7 +154,7 @@ def draw_distance_cloud(image, points_with_distances, detection_kernel_size):
 
     kernel_half = detection_kernel_size // 2
 
-    for (x, y), distance in points_with_distances.items():
+    for (x, y), (distance, bearing) in points_with_distances.items():
         if math.isnan(distance):
             cv2.circle(overlay, (x, y), 5, (0, 0, 255), -1)
             text = "Nan"
@@ -164,7 +164,7 @@ def draw_distance_cloud(image, points_with_distances, detection_kernel_size):
                         0.5, (0, 0, 255), 2)
         else:
             cv2.circle(overlay, (x, y), 5, (0, 255, 0), -1)
-            text = f"{distance:.2f} cm"
+            text = f"{distance:.2f} cm, {bearing} deg"
             # Adjusting the text position to be just above the kernel area
             text_x, text_y = x - kernel_half, y - kernel_half - 10
             cv2.putText(image, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX,
