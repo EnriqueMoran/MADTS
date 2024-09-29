@@ -8,7 +8,7 @@ __author__ = "EnriqueMoran"
 
 
 MIN_ID = 0
-MAX_ID = 0
+MAX_ID = 99
 MIN_DIST = 0
 MAX_DIST = 18520
 MIN_BEARING = 0
@@ -52,12 +52,12 @@ class NavData(BaseClass):
     
 
     @staticmethod
-    def unpack(packed_data):  # WIP
+    def unpack(packed_data):
         """
         type         -> Type: Int   | Num Bytes: 1  | Endianness: Big-endian
         id           -> Type: Int   | Num Bytes: 1  | Endianness: Big-endian
         distance     -> Type: Float | Num Bytes: 4  | Endianness: Little-endian
-        bearing      -> Type: Int   | Num Bytes: 2  | Endianness: Big-endian
+        bearing      -> Type: Int   | Num Bytes: 4  | Endianness: Big-endian
         heading      -> Type: Int   | Num Bytes: 4  | Endianness: Big-endian
         speed        -> Type: Float | Num Bytes: 4  | Endianness: Little-endian
         track_type   -> Type: Int   | Num Bytes: 4  | Endianness: Big-endian
@@ -66,11 +66,11 @@ class NavData(BaseClass):
         message_type = MessageType(struct.unpack('>B', packed_data[0:1])[0])
         id_unpacked  = struct.unpack('>B', packed_data[1:2])[0]
         distance_unpacked = struct.unpack('<f', packed_data[2:6])[0]
-        bearing_unpacked  = struct.unpack('>H', packed_data[6:8])[0]
-        heading_unpacked  = struct.unpack('>I', packed_data[8:12])[0]
-        speed_unpacked    = struct.unpack('<f', packed_data[12:16])[0]
-        track_type_unpacked = struct.unpack('>I', packed_data[16:20])[0]
-        behavior_unpacked   = struct.unpack('>I', packed_data[20:24])[0]
+        bearing_unpacked  = struct.unpack('>i', packed_data[6:10])[0] 
+        heading_unpacked  = struct.unpack('>I', packed_data[10:14])[0]
+        speed_unpacked    = struct.unpack('<f', packed_data[14:18])[0]
+        track_type_unpacked = struct.unpack('>I', packed_data[18:22])[0]
+        behavior_unpacked   = struct.unpack('>I', packed_data[22:26])[0]
 
         return {
             'type': message_type,

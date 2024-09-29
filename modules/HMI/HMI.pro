@@ -68,6 +68,9 @@ unix:!macx: {
     DEPENDPATH += $$PWD/../../../../../../usr/lib/x86_64-linux-gnu
 }
 
+win32: QMAKE_POST_LINK += $$quote(cmd /c xcopy /E /I /Y \"$$ROOTDIR\\cfg\\*\" \"$$OUT_PWD\\debug\\cfg\\\")
+unix: QMAKE_POST_LINK += $$quote(cp $$ROOTDIR/cfg/configuration.ini $$OUT_PWD/)
+
 target.path = $$DEST_DIR/
 message("Adding bin files:" $$target.path)
 

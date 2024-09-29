@@ -145,7 +145,7 @@ void Tracker::periodicCheckTracks()
                 BOOST_LOG_SEV(m_logger, debug) << "    Time difference is higher than track timeout (" <<
                     ConfigurationManager::getInstance()->getTrackerConfig().track_timeout << ")";
 
-                m_tracklist->insert(track->getId(), nullptr);
+                m_tracklist->remove(track->getId());
                 delete track;
                 BOOST_LOG_SEV(m_logger, debug) << "    Track removed from internal list";
             }
@@ -167,7 +167,6 @@ Track *Tracker::getExistentTrack(double distance, double bearing, double heading
                                  double speed)
 {
     Track *found_track = nullptr;
-// TODO: Esta parte puede dar errores al recorrer el mapa y llamar a isSimilar con un puntero
     for (auto it = m_tracklist->begin(); it != m_tracklist->end(); ++it) {
         if (it.value() != nullptr && isSimilar(it.value(), distance, bearing, heading, speed)) {
             found_track = it.value();
@@ -213,6 +212,25 @@ void Tracker::setTrackBehavior(Track *track)
 bool Tracker::isSimilar(const Track *track, double distance,
                                       double bearing, double heading, double speed)
 {
+    BOOST_LOG_SEV(m_logger, info) << "Track distance: " << track->getDistance()
+                                  << " bearing: " << std::abs(track->getBearing())
+                                  << " heading: " << track->getHeading()
+                                  << " speed: " << track->getSpeed();
+
+    BOOST_LOG_SEV(m_logger, info) << "Comparing distance: " << distance
+                                  << " bearing: " << bearing
+                                  << " heading: " << heading
+                                  << " speed: " << speed;
+
+    double distance_diff = std::abs(track->getDistance() - distance);
+    int bearing_diff = std::min(std::abs(track->getBearing() - bearing), 360 - std::abs(track->getBearing() - bearing));
+    int heading_diff = std::min(std::abs(track->getHeading() - heading), 360 - std::abs(track->getHeading() - heading));
+    int speed_diff = std::abs(track->getSpeed() - speed);
+
+    BOOST_LOG_SEV(m_logger, info) << "Distance diff: " << distance_diff
+                                  << " bearing diff: " << bearing_diff
+                                  << " heading diff: " << heading_diff
+                                  << " speed diff: " << speed_diff;
 
     return std::abs(track->getDistance() - distance) <= (m_distance_threshold) &&
            std::min(std::abs(track->getBearing() - bearing), 360 - std::abs(track->getBearing() - bearing)) <= m_bearing_threshold &&

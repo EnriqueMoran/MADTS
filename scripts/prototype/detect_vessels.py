@@ -197,6 +197,13 @@ class MainApp(BaseClass):
                 self.logger.debug(f"Detection class_name: {class_name}")
                 self.logger.debug(f"Detection confidence: {confidence}")
 
+                allowed_class_names = vessel_detector.config_parser.detection.detection_names
+                if class_name not in allowed_class_names and 'all' not in allowed_class_names:
+                    msg = f"Detected object ({class_name}) is not a vessel " +\
+                          f"({allowed_class_names}), discarded."
+                    self.logger.debug(msg)
+                    continue
+
                 x = bbox[0]
                 y = bbox[1]
                 width  = bbox[2]

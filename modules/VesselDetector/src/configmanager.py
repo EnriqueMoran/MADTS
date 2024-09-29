@@ -264,6 +264,19 @@ class ConfigManager(BaseClass):
             self.logger.warning(warning_msg)
             res = False
 
+        try:
+            value = str(config.get(
+                            "DETECTION", 
+                            "class_names").strip()
+                       )
+            msg = f"Read DETECTION - class_names: {value}"
+            self.logger.info(msg)
+            self.detection.detection_names = [item.strip().lower() for item in value.split(',')]
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'class_names' in section 'DETECTION': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+
         self.logger.info(f"Finished reading configuration, all params read successfully: {res}")
         return res
         

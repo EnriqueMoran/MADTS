@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 
 __author__ = "EnriqueMoran"
@@ -33,3 +34,4 @@ class Stream:
 @dataclass
 class Detection:
     min_confidence:float = None
+    detection_names: List[str] = None

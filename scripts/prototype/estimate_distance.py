@@ -337,6 +337,7 @@ class MainApp(BaseClass):
                 self.logger.debug(msg)
                 
                 distance_map = {}
+                detection_id = 0
                 for detection in detection_list:
                     detection_x = int(round(detection.x * frame_size[0]))
                     detection_y = int(round(detection.y * frame_size[1]))
@@ -355,7 +356,7 @@ class MainApp(BaseClass):
                     distance_map[(detection_x, detection_y)] = (dist, int(bearing))
                     
                     nav_data_msg = NavData()
-                    nav_data_msg.id = 0           # TODO Calculate
+                    nav_data_msg.id = detection_id         # TODO Calculate
                     nav_data_msg.distance = dist / 100     # From cm to meters
                     nav_data_msg.bearing  = int(bearing)
 
@@ -365,6 +366,7 @@ class MainApp(BaseClass):
                     self.logger.debug(f"    bearing: {nav_data_msg.bearing}")
 
                     nav_data_estimator.multicast_manager.send_nav_data_async(nav_data_msg)
+                    detection_id += 1
 
                 computation_elapsed_time = time.time() - computation_start_time
                 self.logger.debug(f"Computation time (loop): {computation_elapsed_time:.2f} secs.")
