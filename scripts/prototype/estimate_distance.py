@@ -164,7 +164,7 @@ class MainApp(BaseClass):
     
 
     def _record_stream(self, recording, distance_calculator, frame_left, aligned_map, 
-                       detection_list, kernel_size):
+                       detection_list, kernel_size, frame_count=0):
         """
         Function to handle video recording in a separate thread.
         
@@ -180,6 +180,16 @@ class MainApp(BaseClass):
         draw_depth_sgbm = draw_depth_map(frame_left, aligned_norm)
 
         dist_map = draw_distance_cloud(draw_depth_sgbm, detection_list, kernel_size)
+
+        ####################################### DEBUG DELETE #######################################
+        from datetime import datetime
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cv2.putText(dist_map, f"Frame: {frame_count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                    (0, 0, 255), 2, cv2.LINE_AA) 
+        cv2.putText(dist_map, f"Time: {current_time}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, 
+            (0, 0, 255), 2, cv2.LINE_AA)
+        ############################################################################################
+        
         recording.write(dist_map)
 
 
@@ -271,11 +281,13 @@ class MainApp(BaseClass):
                 if not ret_right or not ret_left:
                     lost_frames += 1
                     if lost_frames >= config_parser.stream.lost_frames:
+                        msg = f"Max lost frames reached ({config_parser.stream.lost_frames})."
+                        self.logger.info(msg)
                         break
                     else:
                         time.sleep(1/stream_fps)
                         continue
-                
+                self.logger.info(f"Lost frames: {lost_frames}.")
                 lost_frames = 0
 
                 # Give Vessel detector some time to send latest data as we are reading latest
@@ -293,7 +305,7 @@ class MainApp(BaseClass):
                     self.logger.debug(f"    x: {detection.x}")
                     self.logger.debug(f"    y: {detection.y}")
                     self.logger.debug(f"    width: {detection.width}")
-                    self.logger.debug(f"    height: {detection.x}")
+                    self.logger.debug(f"    height: {detection.height}")
                     self.logger.debug(f"    probability: {detection.probability}")
                 
                 correlation_tresh = config_parser.correlation.min_distance
@@ -341,9 +353,12 @@ class MainApp(BaseClass):
                 for detection in detection_list:
                     detection_x = int(round(detection.x * frame_size[0]))
                     detection_y = int(round(detection.y * frame_size[1]))
-                    #dist = float(aligned_map[detection_y, detection_x])
-                    dist = float(distance_calculator.get_avg_distance(aligned_map, (detection_y, 
-                                                                                    detection_x)))
+                    detection_width  = int(round(detection.width * frame_size[0]))
+                    detection_height = int(round(detection.height * frame_size[1]))
+                    dist = float(distance_calculator.get_avg_distance(aligned_map, 
+                                                                      (detection_y, detection_x),
+                                                                      detection_width,
+                                                                      detection_height))
                     self.logger.debug(f"Detection {(detection_x, detection_y)} distance: {dist}")
 
                     if isnan(dist):
@@ -353,7 +368,8 @@ class MainApp(BaseClass):
                     bearing, _ = distance_calculator.get_angle((detection_x, detection_y),
                                                                frame_size[0], frame_size[1])
                     
-                    distance_map[(detection_x, detection_y)] = (dist, int(bearing))
+                    distance_map[(detection_x, detection_y)] = (dist, int(bearing), detection_width,
+                                                                detection_height)
                     
                     nav_data_msg = NavData()
                     nav_data_msg.id = detection_id         # TODO Calculate
@@ -378,7 +394,7 @@ class MainApp(BaseClass):
                 if config_parser.stream.record:
                     future = executor.submit(self._record_stream, recording, distance_calculator,
                                              frame_left, aligned_map, distance_map, 
-                                             config_parser.parameters.detection_kernel)
+                                             config_parser.parameters.detection_kernel, frame_count)
                     future.result()
             
             stream_left.release()

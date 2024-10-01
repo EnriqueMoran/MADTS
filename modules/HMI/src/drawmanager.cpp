@@ -860,7 +860,7 @@ void DrawManager::trackSelected(Track *track)
 {
     if (track)
     {
-        //BOOST_LOG_SEV(m_logger, debug) << "Selected track with id: " << track;
+        BOOST_LOG_SEV(m_logger, debug) << "Selected track with id: " << track;
 
         QPalette palette = m_track_distance_value->palette();
         palette.setColor(QPalette::Text, Qt::black);

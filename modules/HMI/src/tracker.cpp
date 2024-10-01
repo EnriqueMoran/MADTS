@@ -145,7 +145,7 @@ void Tracker::periodicCheckTracks()
                 BOOST_LOG_SEV(m_logger, debug) << "    Time difference is higher than track timeout (" <<
                     ConfigurationManager::getInstance()->getTrackerConfig().track_timeout << ")";
 
-                m_tracklist->remove(track->getId());
+                m_tracklist->insert(track->getId(), nullptr);
                 delete track;
                 BOOST_LOG_SEV(m_logger, debug) << "    Track removed from internal list";
             }

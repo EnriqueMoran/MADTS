@@ -351,7 +351,7 @@ class DistanceCalculator(BaseClass):
         return H
 
 
-    def get_avg_distance(self, depth_map, point):
+    def get_avg_distance(self, depth_map, point, width, height):
         """
         Returns average distance from points within kernel area, excluding outliers.
         """
@@ -359,10 +359,17 @@ class DistanceCalculator(BaseClass):
         kernel_half = self.detection_kernel // 2
 
         y, x = point
-        x_min = max(x - kernel_half, 0)
-        x_max = min(x + kernel_half, depth_map.shape[1] - 1)
-        y_min = max(y - kernel_half, 0)
-        y_max = min(y + kernel_half, depth_map.shape[0] - 1)
+        if self.detection_kernel == 0:
+            x_min = max(int(x - (width / 2)), 0)
+            x_max = min(int(x + (width / 2)), depth_map.shape[1] - 1)
+            y_min = max(int(y - (height / 2)), 0)
+            y_max = min(int(y + (height / 2)), depth_map.shape[0] - 1)
+        else:
+            kernel_half = self.detection_kernel // 2
+            x_min = max(x - kernel_half, 0)
+            x_max = min(x + kernel_half, depth_map.shape[1] - 1)
+            y_min = max(y - kernel_half, 0)
+            y_max = min(y + kernel_half, depth_map.shape[0] - 1)
 
         kernel_area = depth_map[y_min:y_max + 1, x_min:x_max + 1]
         valid_values = kernel_area[kernel_area > 0]
@@ -371,7 +378,7 @@ class DistanceCalculator(BaseClass):
             mean_dist = valid_values.mean()
             std_dist = valid_values.std()
 
-            threshold = 1 
+            threshold = 1
 
             filtered_values = valid_values[
                 (valid_values >= mean_dist - threshold * std_dist) & 

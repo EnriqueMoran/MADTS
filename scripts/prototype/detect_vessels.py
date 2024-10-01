@@ -169,11 +169,15 @@ class MainApp(BaseClass):
             if not ret:
                 lost_frames += 1
                 if lost_frames >= vessel_detector.config_parser.stream.lost_frames:
+                    max_lost = vessel_detector.config_parser.stream.lost_frames
+                    msg = f"Max lost frames reached ({max_lost})."
+                    self.logger.info(msg)
                     break
                 else:
                     time.sleep(1/stream.get_fps())
                     continue
-            
+
+            self.logger.info(f"Lost frames: {lost_frames}.")
             lost_frames = 0
         
             computation_start_time = time.time()
@@ -255,6 +259,17 @@ class MainApp(BaseClass):
                     vessel_detector.multicast_manager.send_detection(detection_msg)
                     if vessel_detector.config_parser.stream.record:
                         bbox_frame = draw(bbox_abs, bbox_frame)
+
+                        ##################### DEBUG DELETE #####################
+                        from datetime import datetime
+                        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        cv2.putText(bbox_frame, f"Frame: {frame_count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                                    (0, 0, 255), 2, cv2.LINE_AA) 
+                        cv2.putText(bbox_frame, f"Time: {current_time}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                            (0, 0, 255), 2, cv2.LINE_AA)
+                         
+                        ########################################################
+
                         recording.write(bbox_frame)
 
                 computation_elapsed_time = time.time() - computation_start_time
