@@ -7,6 +7,7 @@ import concurrent.futures
 import cv2
 import os
 import sys
+import threading
 import time
 
 from datetime import datetime
@@ -38,10 +39,13 @@ class MainApp(BaseClass):
 
     def __init__(self, log_format:str, log_level:str, log_filepath:str, 
                  config_filepath:str, args:argparse.Namespace):
-        self.log_filepath = log_filepath
-        self.log_format   = log_format
-        self.log_level    = log_level
-        self.logger       = None
+        self.log_filepath   = log_filepath
+        self.log_format     = log_format
+        self.log_level      = log_level
+        self.logger         = None
+        self.last_frame     = None
+        self.stop_event     = threading.Event()
+        self.display_thread = None
 
         self.config_filepath = config_filepath
 
@@ -54,6 +58,38 @@ class MainApp(BaseClass):
             return
         else:
             super().__init__(self.log_filepath, self.log_format, self.log_level)
+    
+
+    def _start_display_thread(self, window_size):
+        """
+        TBD
+        """
+        self.display_thread = threading.Thread(target=self._display_video, args=(window_size,))
+        self.display_thread.start()
+
+
+    def _stop_display_thread(self):
+        """
+        TBD
+        """
+        self.stop_event.set()
+        if self.display_thread is not None:
+            self.display_thread.join()
+        
+    
+    def _display_video(self, params):
+        """
+        TBD
+        """
+        while not self.stop_event.is_set():
+            if self.last_frame is not None:
+                cv2.imshow('Distance map', cv2.resize(self.last_frame, params[0]))
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    self.stop_event.set()
+                    break
+            else:
+                time.sleep(0.1)
+        cv2.destroyAllWindows()
 
         
     def _check_args(self, args) -> None:
@@ -163,10 +199,10 @@ class MainApp(BaseClass):
         return res
     
 
-    def _record_stream(self, recording, distance_calculator, frame_left, aligned_map, 
-                       detection_list, kernel_size, frame_count=0):
+    def _get_recording_frame(self, distance_calculator, frame_left, aligned_map, 
+                             detection_list, kernel_size, frame_count=0):
         """
-        Function to handle video recording in a separate thread.
+        Function to create frame for video recording in a separate thread.
         
         Args:
             - recording: The VideoWriter object for recording the video.
@@ -182,7 +218,6 @@ class MainApp(BaseClass):
         dist_map = draw_distance_cloud(draw_depth_sgbm, detection_list, kernel_size)
 
         ####################################### DEBUG DELETE #######################################
-        from datetime import datetime
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cv2.putText(dist_map, f"Frame: {frame_count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 
                     (0, 0, 255), 2, cv2.LINE_AA) 
@@ -190,13 +225,14 @@ class MainApp(BaseClass):
             (0, 0, 255), 2, cv2.LINE_AA)
         ############################################################################################
         
-        recording.write(dist_map)
+        return dist_map
 
 
     def main(self):
         info_msg = f"Running Distance estimator script..."
         print(info_msg)
         self.logger.info(info_msg)
+
         nav_data_estimator = NavDataEstimator(filename=self.log_filepath, format=self.log_format,
                                               level=self.log_level,
                                               config_path=self.config_filepath)
@@ -213,6 +249,12 @@ class MainApp(BaseClass):
         distance_calculator = nav_data_estimator.distance_calculator
         config_parser = nav_data_estimator.distance_calculator.config_parser
         scale = nav_data_estimator.config_parser.stream.scale
+        
+
+        if config_parser.stream.show_video:
+            window_size = (config_parser.stream.video_width, 
+                           config_parser.stream.video_height)
+            self._start_display_thread((window_size, ))
 
         nav_data_estimator.multicast_manager.start_communications()
 
@@ -360,6 +402,9 @@ class MainApp(BaseClass):
                                                                       detection_width,
                                                                       detection_height))
                     self.logger.debug(f"Detection {(detection_x, detection_y)} distance: {dist}")
+                    
+                    current_time = datetime.now().strftime("%H:%M:%S")
+                    print(f"{current_time} - Detection {(detection.x, detection.y)} distance: {dist:.2f}")
 
                     if isnan(dist):
                         self.logger.debug(f"Skipping message")
@@ -391,14 +436,21 @@ class MainApp(BaseClass):
                 compute_time_avg = compute_time / frame_count
                 self.logger.debug(f"Computation time (avg): {compute_time_avg:.2f} secs.")
 
-                if config_parser.stream.record:
-                    future = executor.submit(self._record_stream, recording, distance_calculator,
+                future = executor.submit(self._get_recording_frame, distance_calculator,
                                              frame_left, aligned_map, distance_map, 
                                              config_parser.parameters.detection_kernel, frame_count)
-                    future.result()
+                self.last_frame = future.result()
+
+                if config_parser.stream.record:
+                    recording.write(self.last_frame)   
             
+            if config_parser.stream.show_video:
+                self._stop_display_thread()
+                cv2.destroyAllWindows()
+
             stream_left.release()
             stream_right.release()
+            
             if config_parser.stream.record:
                 recording.release()
             info_msg = f"Streamings are over!"
@@ -424,11 +476,13 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
-    log_filepath = f"./modules/NavDataEstimator/logs/{datetime.now().strftime('%Y%m%d')}.log"
+    #log_filepath = f"./modules/NavDataEstimator/logs/{datetime.now().strftime('%Y%m%d')}.log"
+    log_filepath = f"./prototype/20241001/logs/navdataestimator.log"
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
 
-    config_filepath = f"./modules/NavDataEstimator/cfg/config.ini"
+    #config_filepath = f"./modules/NavDataEstimator/cfg/config.ini"
+    config_filepath = f"./prototype/20241001/cfg/navdataestimator_cfg.ini"
     
     app = MainApp(log_filepath=log_filepath, log_format=log_format, log_level=log_level, 
                   config_filepath=config_filepath, args=args)

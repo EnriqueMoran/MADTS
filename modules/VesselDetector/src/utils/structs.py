@@ -10,8 +10,8 @@ class Model:
     model_config_file: str = None
     weights_file:      str = None
     class_names_file:  str = None
-    width:  int = None
-    height: int = None
+    width:             int = None
+    height:            int = None
 
 
 @dataclass
@@ -24,14 +24,17 @@ class Communication:
 
 @dataclass
 class Stream:
-    camera:  str = None
-    record: bool = None
-    scale: float = None
-    record_path: str = None
-    lost_frames: int = None
-    
+    camera:      str   = None
+    record:      bool  = None
+    scale:       float = None
+    record_path: str   = None
+    lost_frames: int   = None
+    show_video:  bool  = None
+    video_width:    int   = None
+    video_height:   int   = None
+
 
 @dataclass
 class Detection:
-    min_confidence:float = None
+    min_confidence:  float     = None
     detection_names: List[str] = None

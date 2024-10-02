@@ -225,6 +225,44 @@ class ConfigManager(BaseClass):
             warning_msg = f"Could not find 'record_stream' in section 'STREAM': {e}"
             self.logger.warning(warning_msg)
             res = False
+        
+        try:
+            self.stream.video_width = int(config.get(
+                                              "STREAM", 
+                                              "video_width").strip()
+                                         )
+
+            msg = f"Read STREAM - video_width: {self.stream.video_width}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'video_width' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.stream.video_height = int(config.get(
+                                               "STREAM", 
+                                               "video_height").strip()
+                                          )
+
+            msg = f"Read STREAM - video_height: {self.stream.video_height}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'video_height' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
+        
+        try:
+            self.stream.show_video = bool(int(config.get(
+                                              "STREAM", 
+                                              "show_video").strip())
+                                     )
+            msg = f"Read STREAM - show_video: {self.stream.show_video}"
+            self.logger.info(msg)
+        except (configparser.NoSectionError, configparser.NoOptionError) as e:
+            warning_msg = f"Could not find 'show_video' in section 'STREAM': {e}"
+            self.logger.warning(warning_msg)
+            res = False
 
         try:
             self.stream.record_path = str(config.get(

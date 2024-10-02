@@ -3,9 +3,11 @@ TBD
 """
 
 import argparse
+import concurrent.futures
 import cv2
 import os
 import sys
+import threading
 import time
 
 from datetime import datetime
@@ -36,10 +38,13 @@ class MainApp(BaseClass):
 
     def __init__(self, log_format:str, log_level:str, log_filepath:str, 
                  config_filepath:str, args:argparse.Namespace):
-        self.log_filepath = log_filepath
-        self.log_format   = log_format
-        self.log_level    = log_level
-        self.logger       = None
+        self.log_filepath   = log_filepath
+        self.log_format     = log_format
+        self.log_level      = log_level
+        self.logger         = None
+        self.last_frame     = None
+        self.stop_event     = threading.Event()
+        self.display_thread = None
 
         self.config_filepath = config_filepath
 
@@ -92,7 +97,39 @@ class MainApp(BaseClass):
                 pass
 
         return res
-    
+
+
+    def _start_display_thread(self):
+        """
+        TBD
+        """
+        self.display_thread = threading.Thread(target=self._display_video)
+        self.display_thread.start()
+
+
+    def _stop_display_thread(self):
+        """
+        TBD
+        """
+        self.stop_event.set()
+        if self.display_thread is not None:
+            self.display_thread.join()
+
+
+    def _display_video(self):
+        """
+        TBD
+        """
+        while not self.stop_event.is_set():
+            if self.last_frame is not None:
+                cv2.imshow('Vessel detection', self.last_frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    self.stop_event.set()
+                    break
+            else:
+                time.sleep(0.1)
+        cv2.destroyAllWindows()
+
     
     def _get_stream(self, config_parser):
         stream  = StreamConsumer(config_parser.stream.camera)
@@ -148,6 +185,8 @@ class MainApp(BaseClass):
         frame_size = self._get_frame_size(stream)
         frame_size = (int(frame_size[0] * scale), int(frame_size[1] * scale))
 
+        self._start_display_thread()  # TODO remove
+
         info_msg = f"Processing stream..."
         print(info_msg)
         self.logger.info(info_msg)
@@ -192,6 +231,11 @@ class MainApp(BaseClass):
             
             bboxes_abs = vessel_detector.get_bboxes_abs(img=frame, bboxes=bboxes)
 
+            if vessel_detector.config_parser.stream.show_video:
+                window_size = (vessel_detector.config_parser.stream.video_width, 
+                               vessel_detector.config_parser.stream.video_height)
+                self.last_frame = cv2.resize(frame, window_size)
+
             for i, bbox in enumerate(bboxes):
                 confidence = confidences[i]
                 class_name = class_names[i]
@@ -212,6 +256,9 @@ class MainApp(BaseClass):
                 y = bbox[1]
                 width  = bbox[2]
                 height = bbox[3]
+
+                current_time = datetime.now().strftime("%H:%M:%S")
+                print(f"{current_time} - Detected {class_name} ({int(confidence * 100)}%) at {(x, y)}")
 
                 if x > MAX_X:
                     msg = f"Detection x ({x}) higher than limit ({MAX_X}) setting to {MAX_X}."
@@ -257,20 +304,24 @@ class MainApp(BaseClass):
                     self.logger.debug(f"    probability: {detection_msg.probability}")
                     
                     vessel_detector.multicast_manager.send_detection(detection_msg)
+                    bbox_frame = draw(bbox_abs, bbox_frame)
+
+                    ##################### DEBUG DELETE #####################
+                    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    cv2.putText(bbox_frame, f"Frame: {frame_count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                                (0, 0, 255), 2, cv2.LINE_AA) 
+                    cv2.putText(bbox_frame, f"Time: {current_time}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                        (0, 0, 255), 2, cv2.LINE_AA)
+                        
+                    ########################################################
+
                     if vessel_detector.config_parser.stream.record:
-                        bbox_frame = draw(bbox_abs, bbox_frame)
-
-                        ##################### DEBUG DELETE #####################
-                        from datetime import datetime
-                        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        cv2.putText(bbox_frame, f"Frame: {frame_count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 
-                                    (0, 0, 255), 2, cv2.LINE_AA) 
-                        cv2.putText(bbox_frame, f"Time: {current_time}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, 
-                            (0, 0, 255), 2, cv2.LINE_AA)
-                         
-                        ########################################################
-
                         recording.write(bbox_frame)
+                
+                    if vessel_detector.config_parser.stream.show_video:
+                        window_size = (vessel_detector.config_parser.stream.video_width, 
+                                    vessel_detector.config_parser.stream.video_height)
+                        self.last_frame = cv2.resize(bbox_frame, window_size)
 
                 computation_elapsed_time = time.time() - computation_start_time
                 self.logger.debug(f"Computation time (loop): {computation_elapsed_time:.2f} secs.")
@@ -282,7 +333,12 @@ class MainApp(BaseClass):
         if vessel_detector.config_parser.stream.record:
             recording.release()
 
+        if vessel_detector.config_parser.stream.show_video:
+            self._stop_display_thread()
+            cv2.destroyAllWindows()
+            
         stream.release()
+        cv2.destroyAllWindows()
 
         info_msg = f"Streaming is over!"
         print(info_msg)
@@ -306,11 +362,13 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
-    log_filepath = f"./modules/VesselDetector/logs/{datetime.now().strftime('%Y%m%d')}.log"
+    #log_filepath = f"./modules/VesselDetector/logs/{datetime.now().strftime('%Y%m%d')}.log"
+    log_filepath = f"./prototype/20241001/logs/vesseldetector.log"
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
 
-    config_filepath = f"./modules/VesselDetector/cfg/config.ini"
+    #config_filepath = f"./modules/VesselDetector/cfg/config.ini"
+    config_filepath = f"./prototype/20241001/cfg/vesseldetector_cfg.ini"
     
     app = MainApp(log_filepath=log_filepath, log_format=log_format, log_level=log_level, 
                   config_filepath=config_filepath, args=args)

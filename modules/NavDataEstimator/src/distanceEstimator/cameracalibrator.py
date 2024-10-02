@@ -138,6 +138,7 @@ class Calibrator(BaseClass):
                     cv2.imwrite(str(save_path_right), img_rgb)
                     self.logger.info(f"Saved image with calibration corners to {save_path_right}.")
         
+        self.logger.debug(f"Getting optimal camera matrix...")
         # Create a [(0, 0, 0), (0, 0, 0), ...] matrix and then change to [(1, 0, 0), (2, 0, 0), ...]
         pattern_points = np.zeros((np.prod(self.chessboard_size), 3), np.float32)
         pattern_points[:, :2] = np.indices(self.chessboard_size).T.reshape(-1, 2)

@@ -57,6 +57,9 @@ class Stream:
     record:         bool  = None
     scale:          float = None
     lost_frames:    int   = None
+    show_video:     bool  = None
+    video_width:    int   = None
+    video_height:   int   = None
     
 
 @dataclass

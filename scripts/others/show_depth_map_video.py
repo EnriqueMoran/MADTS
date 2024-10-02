@@ -115,14 +115,17 @@ class MainApp:
         
         params = distance_calculator.calibrator.load_calibration()
 
-        err, Kl, Dl, Kr, Dr, R, T, E, F, pattern_points, left_pts, right_pts = \
-        params["err"], params["Kl"], params["Dl"], params["Kr"], params["Dr"], params["R"], \
-        params["T"], params["E"], params["F"], params["pattern_points"], params["left_pts"], \
-        params["right_pts"]
+        Kl, Dl = params["Kl"], params["Dl"]
+        Kr, Dr = params["Kr"], params["Dr"]
+        R, T   = params["R"], params["T"]
 
-        n_disp     = distance_calculator.config_parser.parameters.num_disparities
-        block_size = distance_calculator.config_parser.parameters.block_size
-        max_disp   = 128
+        distance_calculator = nav_data_estimator.distance_calculator
+        config_parser = nav_data_estimator.distance_calculator.config_parser
+        scale = nav_data_estimator.config_parser.stream.scale
+
+        n_disp     = config_parser.parameters.num_disparities
+        block_size = config_parser.parameters.block_size
+        max_disp   = config_parser.parameters.max_disparities
 
         cap_l = cv2.VideoCapture(self.video_l)
         cap_r = cv2.VideoCapture(self.video_r)
@@ -131,29 +134,44 @@ class MainApp:
         cap_l.release()
         cap_l = cv2.VideoCapture(self.video_l)
 
-        scale = 0.75  # Reduce resolution
         new_size = (int(frame_l.shape[1] * scale), int(frame_l.shape[0] * scale))
 
         precomputed_params = distance_calculator.precompute_rectification_maps(Kl, Dl, Kr, Dr, 
                                                                                new_size, R, T)
         
-        xmap_l, ymap_l, xmap_r, ymap_r, roi_l, roi_r = precomputed_params["xmap_l"], \
+        xmap_l, ymap_l, xmap_r, ymap_r, roi_l, Q = precomputed_params["xmap_l"], \
         precomputed_params["ymap_l"], precomputed_params["xmap_r"], precomputed_params["ymap_r"], \
-        precomputed_params["roi_l"], precomputed_params["roi_r"]
+        precomputed_params["roi_l"], precomputed_params["Q"]
 
         if not cap_l.isOpened() or not cap_r.isOpened():
             print("Error: Cannot open one of the video files.")
             return
+
+        stereo_bm  = cv2.StereoBM_create(n_disp, block_size)
+
+        stereo_sgbm = cv2.StereoSGBM_create(minDisparity=0, 
+                                            numDisparities=max_disp,
+                                            blockSize=block_size,
+                                            P1=8 * 1 * block_size ** 2,
+                                            P2=32 * 1 * block_size ** 2,
+                                            uniquenessRatio=10,
+                                            speckleWindowSize=100,
+                                            speckleRange=32,
+                                            disp12MaxDiff=1,
+                                            mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY)
         
+        count = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             while cap_l.isOpened() and cap_r.isOpened():
                 ret_l, frame_l = cap_l.read()
                 ret_r, frame_r = cap_r.read()
 
-                new_size = (int(frame_l.shape[1] * scale), int(frame_l.shape[0] * scale))
+                count += 1
+                if count % 100 != 0:
+                    continue
 
-                frame_l = cv2.resize(frame_l, new_size, interpolation=cv2.INTER_LINEAR)
-                frame_r = cv2.resize(frame_r, new_size, interpolation=cv2.INTER_LINEAR)
+                frame_r = cv2.resize(frame_r, None, fx=scale, fy=scale)
+                frame_l  = cv2.resize(frame_l, None, fx=scale, fy=scale)
 
                 if not ret_l or not ret_r:
                     break
@@ -170,28 +188,31 @@ class MainApp:
                 display_size = (750, 600)
 
                 start_time_bm = time.time()
-                stereo_bm  = cv2.StereoBM_create(n_disp, block_size)
+                
                 dispmap_bm = stereo_bm.compute(rect_left, rect_right)
                 elapsed_time_bm = time.time() - start_time_bm
-                print(f"StereoBM processing time: {elapsed_time_bm:.2f} seconds")
+                #print(f"StereoBM processing time: {elapsed_time_bm:.2f} seconds")
 
                 start_time_sgbm = time.time()
-                stereo_sgbm = cv2.StereoSGBM_create(0, max_disp, block_size, uniquenessRatio=10,
-                                                    speckleWindowSize=100, speckleRange=32,
-                                                    disp12MaxDiff=1,
-                                                    mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY)
                 dispmap_sgbm = stereo_sgbm.compute(rect_left, rect_right)
                 elapsed_time_sgbm = time.time() - start_time_sgbm
-                print(f"StereoSGBM processing time: {elapsed_time_sgbm:.2f} seconds")
+                #print(f"StereoSGBM processing time: {elapsed_time_sgbm:.2f} seconds")
 
                 dispmap_bm = distance_calculator.apply_disparity_filter(dispmap_bm, stereo_bm,
                                                                         rect_left, rect_right)
         
                 dispmap_sgbm = distance_calculator.apply_disparity_filter(dispmap_sgbm, stereo_sgbm,
                                                                           rect_left, rect_right)
-
-                dispmap_bm   = distance_calculator.normalize_depth_map(dispmap_bm)
-                dispmap_sgbm = distance_calculator.normalize_depth_map(dispmap_sgbm)
+                
+                H = distance_calculator.get_homography(rect_left, frame_l)
+                aligned_sgbm = cv2.warpPerspective(dispmap_sgbm, H, (frame_l.shape[1], 
+                                                                    frame_l.shape[0]))
+                
+                aligned_bm = cv2.warpPerspective(dispmap_bm, H, (frame_l.shape[1], 
+                                                                    frame_l.shape[0]))
+                
+                dispmap_bm   = distance_calculator.normalize_depth_map(aligned_bm)
+                dispmap_sgbm = distance_calculator.normalize_depth_map(aligned_sgbm)
 
                 rect_left  = cv2.cvtColor(rect_left, cv2.COLOR_GRAY2BGR)
                 rect_right = cv2.cvtColor(rect_right, cv2.COLOR_GRAY2BGR)
@@ -204,7 +225,7 @@ class MainApp:
                 draw_depth_bm   = draw_depth_map(rect_left, dispmap_bm)
                 draw_depth_sgbm = draw_depth_map(rect_left, dispmap_sgbm)
 
-                combined_image = cv2.hconcat([cv2.resize(draw_depth_bm, display_size), 
+                combined_image = cv2.hconcat([cv2.resize(cv2.cvtColor(aligned_sgbm, cv2.COLOR_GRAY2BGR), display_size), 
                                               cv2.resize(draw_depth_sgbm, display_size)])
                 cv2.imshow('Depth maps', combined_image)
                 
@@ -243,8 +264,8 @@ if __name__ == "__main__":
     #args = parser.parse_args()   # TODO Uncomment
 
     ######################## DEBUG --- MUST BE REMOVED ########################
-    args = parser.parse_args(['--video_l', './modules/NavDataEstimator/test/20240903_test_left.mp4',
-                              '--video_r', './modules/NavDataEstimator/test/20240903_test_right.mp4',
+    args = parser.parse_args(['--video_l', './prototype/20241001/recordings/recording_left_1.MP4',
+                              '--video_r', './prototype/20241001/recordings/recording_right_1.MP4',
                               '--level', 'DEBUG',
                               '--log', './modules/NavDataEstimator/logs/20240823.log'])
     ###########################################################################
@@ -253,7 +274,7 @@ if __name__ == "__main__":
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
 
-    config_filepath = f"./modules/NavDataEstimator/cfg/config.ini"
+    config_filepath = f"./prototype/20241001/cfg/navdataestimator_cfg.ini"
     
     app = MainApp(log_filepath=log_filepath, log_format=log_format,
                   log_level=log_level, config_filepath=config_filepath, args=args)

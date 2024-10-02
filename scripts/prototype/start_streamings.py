@@ -120,9 +120,6 @@ class MainApp:
 
 
     async def main(self):
-        info_msg = f"Running Start streamings script..."
-        print(info_msg)
-        self.logger.info(info_msg)
         video_syn = VideoSynchronizer(filename=self.log_filepath, format=self.log_format, 
                                       level=self.log_level, config_path=self.config_filepath)
         await video_syn.gopro_manager.start_streaming()
@@ -150,11 +147,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     gopro_log = f"./modules/VideoSynchronizer/logs/{datetime.now().strftime('%Y%m%d')}_gopro.log"
-    log_filepath = f"./modules/VideoSynchronizer/logs/{datetime.now().strftime('%Y%m%d')}.log" 
+    #log_filepath = f"./modules/VideoSynchronizer/logs/{datetime.now().strftime('%Y%m%d')}.log" 
+    gopro_log    = f"./prototype/20241001/logs/videosynchronizer_gopro.log"
+    log_filepath = f"./prototype/20241001/logs/videosynchronizer.log"
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
 
-    config_filepath = f"./modules/VideoSynchronizer/cfg/config_prototype.ini"
+    config_filepath = f"./prototype/20241001/cfg/videosynchronizer_cfg.ini"
     
     app = MainApp(gopro_filepath=gopro_log, log_filepath=log_filepath, log_format=log_format,
                   log_level=log_level, config_filepath=config_filepath, args=args)
