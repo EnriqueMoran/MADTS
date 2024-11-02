@@ -114,13 +114,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     #log_filepath = f"./modules/NavDataEstimator/logs/log_{datetime.now().strftime('%Y%m%d')}.log"
-    log_filepath = f"./prototype/20241001/logs/cameracalibration.log"
+    log_filepath = f"./prototype/20241005/logs/cameracalibration.log"
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
     
 
     #config_filepath = f"./modules/NavDataEstimator/cfg/config.ini"
-    config_filepath = f"./prototype/20241001/cfg/navdataestimator_cfg.ini"
+    config_filepath = f"./prototype/20241005/cfg/navdataestimator_cfg.ini"
     
     app = MainApp(log_filepath=log_filepath, log_format=log_format,
                   log_level=log_level, config_filepath=config_filepath, args=args)

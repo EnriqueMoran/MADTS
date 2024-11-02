@@ -127,6 +127,10 @@ class MainApp:
         block_size = config_parser.parameters.block_size
         max_disp   = config_parser.parameters.max_disparities
 
+        focal_length = config_parser.left_camera_specs.focal_length
+        pixel_size   = config_parser.left_camera_specs.pixel_size
+        baseline     = config_parser.system_setup.baseline_distance
+
         cap_l = cv2.VideoCapture(self.video_l)
         cap_r = cv2.VideoCapture(self.video_r)
 
@@ -167,7 +171,7 @@ class MainApp:
                 ret_r, frame_r = cap_r.read()
 
                 count += 1
-                if count % 100 != 0:
+                if count % 50 != 0:
                     continue
 
                 frame_r = cv2.resize(frame_r, None, fx=scale, fy=scale)
@@ -211,6 +215,12 @@ class MainApp:
                 aligned_bm = cv2.warpPerspective(dispmap_bm, H, (frame_l.shape[1], 
                                                                     frame_l.shape[0]))
                 
+                #aligned_sgbm = distance_calculator.get_distance_map(aligned_sgbm, focal_length, 
+                #                                                    pixel_size, baseline)
+                #
+                #aligned_bm = distance_calculator.get_distance_map(aligned_bm, focal_length, 
+                #                                                  pixel_size, baseline)
+                
                 dispmap_bm   = distance_calculator.normalize_depth_map(aligned_bm)
                 dispmap_sgbm = distance_calculator.normalize_depth_map(aligned_sgbm)
 
@@ -224,6 +234,22 @@ class MainApp:
 
                 draw_depth_bm   = draw_depth_map(rect_left, dispmap_bm)
                 draw_depth_sgbm = draw_depth_map(rect_left, dispmap_sgbm)
+
+                import numpy as np
+                from modules.NavDataEstimator.src.utils.helpers import draw_distance
+
+                margin = 50
+                step = 90
+                image_width, image_height = rect_left.shape[1], rect_left.shape[0]
+                x_points = np.arange(margin, image_width - margin, step)
+                y_points = np.arange(margin, image_height - margin, step)
+
+                points = [(int(x), int(y)) for x in x_points for y in y_points]
+
+                draw_depth_sgbm = draw_distance(draw_depth_sgbm, dispmap_sgbm, points)
+
+                aligned_sgbm = cv2.normalize(aligned_sgbm, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                aligned_bm = cv2.normalize(aligned_bm, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
                 combined_image = cv2.hconcat([cv2.resize(cv2.cvtColor(aligned_sgbm, cv2.COLOR_GRAY2BGR), display_size), 
                                               cv2.resize(draw_depth_sgbm, display_size)])
@@ -264,8 +290,8 @@ if __name__ == "__main__":
     #args = parser.parse_args()   # TODO Uncomment
 
     ######################## DEBUG --- MUST BE REMOVED ########################
-    args = parser.parse_args(['--video_l', './prototype/20241001/recordings/recording_left_1.MP4',
-                              '--video_r', './prototype/20241001/recordings/recording_right_1.MP4',
+    args = parser.parse_args(['--video_l', 'C:/Users/Enrik/Downloads/left.MP4',
+                              '--video_r', 'C:/Users/Enrik/Downloads/right.MP4',
                               '--level', 'DEBUG',
                               '--log', './modules/NavDataEstimator/logs/20240823.log'])
     ###########################################################################
@@ -274,7 +300,7 @@ if __name__ == "__main__":
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
 
-    config_filepath = f"./prototype/20241001/cfg/navdataestimator_cfg.ini"
+    config_filepath = f"./prototype/20241005/cfg/navdataestimator_cfg.ini"
     
     app = MainApp(log_filepath=log_filepath, log_format=log_format,
                   log_level=log_level, config_filepath=config_filepath, args=args)

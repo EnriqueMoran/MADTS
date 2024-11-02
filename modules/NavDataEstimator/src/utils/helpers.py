@@ -69,12 +69,12 @@ def draw_distance(image, distance_map, points):
             cv2.circle(image, (x, y), 5, (0, 0, 255), -1)
             text = "Distance not available"
             cv2.putText(image, text, (x + 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 
-                        0.5, (0, 0, 255), 2)
+                        0.75, (0, 0, 255), 2)
         else:
-            cv2.circle(image, (x, y), 5, (0, 255, 0), -1)
-            text = f"{distance:.2f} cm"
+            cv2.circle(image, (x, y), 5, (0, 0, 255), -1)
+            text = f"{int(distance)}"
             cv2.putText(image, text, (x + 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                         0.5, (0, 255, 0), 2)
+                         0.75, (0, 0, 255), 2)
     
     return image
 

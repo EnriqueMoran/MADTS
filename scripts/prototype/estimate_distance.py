@@ -297,6 +297,10 @@ class MainApp(BaseClass):
         block_size = distance_calculator.config_parser.parameters.block_size
         max_disp   = distance_calculator.config_parser.parameters.max_disparities
 
+        focal_length = distance_calculator.config_parser.left_camera_specs.focal_length
+        pixel_size   = distance_calculator.config_parser.left_camera_specs.pixel_size
+        baseline     = distance_calculator.config_parser.system_setup.baseline_distance
+
         stereo_sgbm = cv2.StereoSGBM_create(minDisparity=0, 
                                             numDisparities=max_disp,
                                             blockSize=block_size,
@@ -386,6 +390,10 @@ class MainApp(BaseClass):
                 H = distance_calculator.get_homography(rect_left, frame_left)
                 aligned_map = cv2.warpPerspective(dispmap_sgbm, H, (frame_left.shape[1], 
                                                                     frame_left.shape[0]))
+                
+                aligned_map = distance_calculator.get_distance_map(aligned_map, focal_length, 
+                                                                   pixel_size, baseline)
+
                 homography_elapsed = time.time() - homography_start
                 msg = f"Time required to compute homography matrix: {homography_elapsed:.2f} secs."
                 self.logger.debug(msg)
@@ -477,12 +485,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     #log_filepath = f"./modules/NavDataEstimator/logs/{datetime.now().strftime('%Y%m%d')}.log"
-    log_filepath = f"./prototype/20241001/logs/navdataestimator.log"
+    log_filepath = f"./prototype/20241005/logs/navdataestimator.log"
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
 
     #config_filepath = f"./modules/NavDataEstimator/cfg/config.ini"
-    config_filepath = f"./prototype/20241001/cfg/navdataestimator_cfg.ini"
+    config_filepath = f"./prototype/20241005/cfg/navdataestimator_cfg.ini"
     
     app = MainApp(log_filepath=log_filepath, log_format=log_format, log_level=log_level, 
                   config_filepath=config_filepath, args=args)

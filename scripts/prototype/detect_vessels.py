@@ -45,6 +45,7 @@ class MainApp(BaseClass):
         self.last_frame     = None
         self.stop_event     = threading.Event()
         self.display_thread = None
+        self.detections         = 0
 
         self.config_filepath = config_filepath
 
@@ -203,7 +204,6 @@ class MainApp(BaseClass):
         lost_frames = 0
         while stream.isOpened():
             ret, frame = stream.read()
-            frame_count += 1
 
             if not ret:
                 lost_frames += 1
@@ -215,6 +215,8 @@ class MainApp(BaseClass):
                 else:
                     time.sleep(1/stream.get_fps())
                     continue
+                
+            frame_count += 1
 
             self.logger.info(f"Lost frames: {lost_frames}.")
             lost_frames = 0
@@ -259,6 +261,7 @@ class MainApp(BaseClass):
 
                 current_time = datetime.now().strftime("%H:%M:%S")
                 print(f"{current_time} - Detected {class_name} ({int(confidence * 100)}%) at {(x, y)}")
+                self.detections += 1
 
                 if x > MAX_X:
                     msg = f"Detection x ({x}) higher than limit ({MAX_X}) setting to {MAX_X}."
@@ -330,6 +333,8 @@ class MainApp(BaseClass):
             compute_time_avg = compute_time / frame_count
             self.logger.debug(f"Computation time (avg): {compute_time_avg:.2f} secs.")
         
+        print(f"Detections: {self.detections} in {frame_count} frames.")
+        
         if vessel_detector.config_parser.stream.record:
             recording.release()
 
@@ -363,12 +368,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     #log_filepath = f"./modules/VesselDetector/logs/{datetime.now().strftime('%Y%m%d')}.log"
-    log_filepath = f"./prototype/20241001/logs/vesseldetector.log"
+    log_filepath = f"./prototype/20241005/logs/vesseldetector.log"
     log_format   = '%(asctime)s - %(levelname)s - %(name)s::%(funcName)s - %(message)s'
     log_level    = os.environ.get("LOGLEVEL", "DEBUG")
 
     #config_filepath = f"./modules/VesselDetector/cfg/config.ini"
-    config_filepath = f"./prototype/20241001/cfg/vesseldetector_cfg.ini"
+    config_filepath = f"./prototype/20241005/cfg/vesseldetector_cfg.ini"
     
     app = MainApp(log_filepath=log_filepath, log_format=log_format, log_level=log_level, 
                   config_filepath=config_filepath, args=args)

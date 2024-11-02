@@ -273,6 +273,18 @@ class DistanceCalculator(BaseClass):
         return distance_map
 
 
+    def calculate_distance(self, disparity_val, focal_length, pixel_size, baseline):
+        """
+        Calculate the real-world distance from disparity values using the baseline, focal length, 
+        and pixel size.
+        """
+        focal_length_pixels = (focal_length / pixel_size) * 1000
+        disparity_val = 1e-6 if disparity_val == 0 else disparity_val
+
+        distance = (focal_length_pixels * baseline) / disparity_val
+        return distance
+
+
     def apply_disparity_filter(self, disp_map, stereo, image_left, image_right):
         """
         TBD

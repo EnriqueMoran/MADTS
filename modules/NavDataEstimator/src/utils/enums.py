@@ -22,6 +22,7 @@ class CalibrationMode(Enum):
     """
     USE_VIDEOS = 1
     USE_IMAGES = 2
+    USE_STREAM = 3
 
 
 class RectificationMode(Enum):
