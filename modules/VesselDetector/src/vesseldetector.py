@@ -41,6 +41,7 @@ class VesselDetector(BaseClass):
         self.model_width  = self.config_parser.model.width
         self.model_height = self.config_parser.model.height
         self.class_names = self._get_class_names()
+        # TODO: Change to readNetFromONNX
         self.net = cv2.dnn.readNetFromDarknet(self.model_cfg_path , self.weights_path)
 
 
