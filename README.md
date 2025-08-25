@@ -19,6 +19,8 @@ Due to time, budget, and resource constraints, two *GoPro HERO 10 Black* cameras
 
 <img src="./resources/01-MADTS_brief_2.png" alt="MADTS features">
 
+<img src="./resources/04-HMI_capture.png" alt="MADTS features">
+
 ## Architecture
 The architecture of MADTS is microservices-based and consists of the following modules:
 * **RTMP Servers:** Two RTMP servers that receive the video stream from two *GoPro HERO 10 Black*.
